@@ -54,23 +54,32 @@ export default defineBackground(() => {
         switch (info.menuItemId) {
             case "convertToReadableDate":
                 message.messageType = MessageType.convertToReadableDate;
+                // Open sidepanel first
+                await browser.sidePanel.open({ tabId: tab.id });
                 break;
             case "openInSidebar":
                 message.messageType = MessageType.openInSidebar;
+                // Open sidepanel first
+                await browser.sidePanel.open({ tabId: tab.id });
                 break;
             case "analyzeText":
                 message.messageType = MessageType.analyzeText;
+                // Open sidepanel first
+                await browser.sidePanel.open({ tabId: tab.id });
                 break;
             default:
                 return;
         }
 
+        // Wait a bit for sidepanel to load, then send message
+        setTimeout(() => {
+            browser.runtime.sendMessage(message);
+        }, 100);
+
         try {
             await browser.tabs.sendMessage(tab.id, message);
         } catch (error) {
-            console.log('Content script not ready, sending directly to sidepanel:', error);
-            // If content script is not available, send directly to sidepanel
-            browser.runtime.sendMessage(message);
+            console.log('Content script not ready, message already sent to sidepanel:', error);
         }
     });
 
