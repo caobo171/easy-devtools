@@ -1,17 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import './App.module.css';
 import '../../assets/main.css'
-import Sidebar, { SidebarType } from "@/entrypoints/sidebar.tsx";
 import { browser } from "wxt/browser";
 import ExtMessage, { MessageType } from "@/entrypoints/types.ts";
-import { Button } from "@/components/ui/button.tsx";
-import { Card } from "@/components/ui/card.tsx";
-import { Home } from "@/entrypoints/sidepanel/home.tsx";
-import { SettingsPage } from "@/entrypoints/sidepanel/settings.tsx";
 import { useTheme } from "@/components/theme-provider.tsx";
 import { useTranslation } from 'react-i18next';
-import Header from "@/entrypoints/sidepanel/header.tsx";
-import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import DateFormat from './Tools/DateFormat';
 import BeautifyJSON from './Tools/BeautifyJSON';
@@ -20,25 +13,24 @@ import Base64Encoder from './Tools/Base64Encoder';
 import HashGenerator from './Tools/HashGenerator';
 import ColorConverter from './Tools/ColorConverter';
 import MarkdownPreview from './Tools/MarkdownPreview';
+import { ToolStateProvider } from '@/lib/toolStateContext';
+import Sidebar, { Tool } from './Sidebar';
 
-type Tool = {
-	id: string;
-	name: string;
-	icon: string;
+type ToolWithComponent = Tool & {
 	component: React.ComponentType;
 };
 
-const tools: Tool[] = [
-	{ id: 'dateformat', name: 'Date Format', icon: '📅', component: DateFormat },
-	{ id: 'beautifyjson', name: 'JSON Beautifier', icon: '🎨', component: BeautifyJSON },
-	{ id: 'urlencoder', name: 'URL Encoder', icon: '🔗', component: URLEncoder },
-	{ id: 'base64encoder', name: 'Base64 Encoder', icon: '🔐', component: Base64Encoder },
-	{ id: 'hashgenerator', name: 'Hash Generator', icon: '🔐', component: HashGenerator },
-	{ id: 'colorconverter', name: 'Color Converter', icon: '🎨', component: ColorConverter },
-	{ id: 'markdownpreview', name: 'Markdown Preview', icon: '📝', component: MarkdownPreview },
-	{ id: 'translate', name: 'Translate', icon: '🌐', component: () => <div>Translate Tool</div> },
-	{ id: 'ocr', name: 'OCR', icon: '📄', component: () => <div>OCR Tool</div> },
-	{ id: 'grammar', name: 'Grammar', icon: '✍️', component: () => <div>Grammar Tool</div> },
+const tools: ToolWithComponent[] = [
+	{ id: 'dateformat', name: 'Date Format', icon: '📅', keywords: ['time', 'calendar', 'date'], component: DateFormat },
+	{ id: 'beautifyjson', name: 'JSON Beautifier', icon: '🎨', keywords: ['format', 'json', 'pretty'], component: BeautifyJSON },
+	{ id: 'urlencoder', name: 'URL Encoder', icon: '🔗', keywords: ['encode', 'decode', 'url'], component: URLEncoder },
+	{ id: 'base64encoder', name: 'Base64 Encoder', icon: '🔐', keywords: ['encode', 'decode', 'base64'], component: Base64Encoder },
+	{ id: 'hashgenerator', name: 'Hash Generator', icon: '🔐', keywords: ['md5', 'sha', 'hash'], component: HashGenerator },
+	{ id: 'colorconverter', name: 'Color Converter', icon: '🎨', keywords: ['hex', 'rgb', 'hsl', 'color'], component: ColorConverter },
+	{ id: 'markdownpreview', name: 'Markdown Preview', icon: '📝', keywords: ['md', 'markdown', 'preview'], component: MarkdownPreview },
+	{ id: 'translate', name: 'Translate', icon: '🌐', keywords: ['language', 'translation'], component: () => <div>Translate Tool</div> },
+	{ id: 'ocr', name: 'OCR', icon: '📄', keywords: ['text', 'image', 'recognition'], component: () => <div>OCR Tool</div> },
+	{ id: 'grammar', name: 'Grammar', icon: '✍️', keywords: ['spelling', 'check', 'writing'], component: () => <div>Grammar Tool</div> },
 ];
 
 export default () => {
@@ -92,45 +84,30 @@ export default () => {
 
 
 	return (
-		<div className={cn(theme, 'h-full flex')}>
-			{/* Main workspace */}
-			<div className="flex-1 flex flex-col">
-				{/* Header */}
-				<div className="border-b p-4">
-					<h1 className="text-xl font-semibold">DevTools Extension</h1>
-					<p className="text-sm text-gray-600">Your development toolkit</p>
+		<ToolStateProvider>
+			<div className={cn(theme, 'h-full flex overflow-hidden')}>  
+				{/* Main workspace */}
+				<div className="flex-1 flex flex-col min-w-0">
+					{/* Header */}
+					<div className="border-b p-4">
+						<h1 className="text-xl font-semibold">DevTools Extension</h1>
+					</div>
+					
+					{/* Main content area */}
+					<div className="flex-1 p-4 overflow-auto">
+						<div className="w-full min-w-0">
+							{renderSelectedTool()}
+						</div>
+					</div>
 				</div>
-				
-				{/* Main content area */}
-				<div className="flex-1 p-4">
-					{renderSelectedTool()}
-				</div>
-			</div>
 
-			{/* Tools sidebar */}
-			<div className="w-64 border-l bg-gray-50 dark:bg-gray-900 flex flex-col">
-				<div className="p-4 border-b">
-					<h2 className="font-semibold text-sm text-gray-700 dark:text-gray-300">TOOLS</h2>
-				</div>
-				
-				<div className="flex-1 p-2">
-					{tools.map((tool) => (
-						<button
-							key={tool.id}
-							onClick={() => setSelectedTool(tool.id)}
-							className={cn(
-								"w-full flex items-center gap-3 p-3 rounded-lg text-left transition-colors mb-2",
-								selectedTool === tool.id
-									? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300"
-									: "hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-							)}
-						>
-							<span className="text-lg">{tool.icon}</span>
-							<span className="text-sm font-medium">{tool.name}</span>
-						</button>
-					))}
-				</div>
+				{/* Tools sidebar */}
+				<Sidebar 
+					tools={tools}
+					selectedTool={selectedTool}
+					onSelectTool={setSelectedTool}
+				/>
 			</div>
-		</div>
+		</ToolStateProvider>
 	)
 };

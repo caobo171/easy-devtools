@@ -1,11 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useToolState } from '@/lib/toolStateContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 
 export default function URLEncoder() {
-    const [input, setInput] = useState('');
-    const [output, setOutput] = useState('');
-    const [mode, setMode] = useState<'encode' | 'decode'>('encode');
+    const { toolState, updateToolState } = useToolState();
+    const [input, setInput] = useState(toolState.urlEncoder.input);
+    const [output, setOutput] = useState(toolState.urlEncoder.output);
+    const [mode, setMode] = useState<'encode' | 'decode'>(toolState.urlEncoder.mode);
+    
+    // Update global state when local state changes
+    useEffect(() => {
+        updateToolState('urlEncoder', { input, output, mode });
+    }, [input, output, mode]);
 
     const processURL = () => {
         if (!input.trim()) {

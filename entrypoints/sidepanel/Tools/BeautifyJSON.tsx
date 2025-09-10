@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useToolState } from '@/lib/toolStateContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 
@@ -139,10 +140,16 @@ const JSONTree: React.FC<JSONTreeProps> = ({ data, name, level = 0 }) => {
 };
 
 export default function BeautifyJSON() {
-    const [input, setInput] = useState('');
-    const [parsedData, setParsedData] = useState<any>(null);
+    const { toolState, updateToolState } = useToolState();
+    const [input, setInput] = useState(toolState.beautifyJSON.input);
+    const [parsedData, setParsedData] = useState<any>(toolState.beautifyJSON.parsedData);
     const [error, setError] = useState('');
-    const [viewMode, setViewMode] = useState<'tree' | 'text'>('tree');
+    const [viewMode, setViewMode] = useState<'tree' | 'text'>(toolState.beautifyJSON.viewMode);
+    
+    // Update global state when local state changes
+    useEffect(() => {
+        updateToolState('beautifyJSON', { input, parsedData, viewMode });
+    }, [input, parsedData, viewMode]);
 
     const processJSON = () => {
         if (!input.trim()) {
@@ -296,11 +303,13 @@ export default function BeautifyJSON() {
                         </div>
                         <Card className="p-3">
                             {viewMode === 'tree' ? (
-                                <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg overflow-auto max-h-96 font-mono text-sm">
-                                    <JSONTree data={parsedData} />
+                                <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg overflow-x-hidden overflow-y-auto max-h-96 font-mono text-sm">
+                                    <div className="min-w-0 break-words">
+                                        <JSONTree data={parsedData} />
+                                    </div>
                                 </div>
                             ) : (
-                                <pre className="text-sm font-mono whitespace-pre-wrap bg-gray-100 dark:bg-gray-800 p-3 rounded overflow-auto max-h-96">
+                                <pre className="text-sm font-mono whitespace-pre-wrap bg-gray-100 dark:bg-gray-800 p-3 rounded overflow-x-hidden overflow-y-auto max-h-96 break-words">
                                     {getFormattedJSON()}
                                 </pre>
                             )}
