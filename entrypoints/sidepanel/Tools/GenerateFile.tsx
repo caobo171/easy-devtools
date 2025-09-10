@@ -70,31 +70,25 @@ export default function GenerateFile() {
 
   // Generate random binary data
   const generateRandomBinaryData = (sizeInBytes: number): Uint8Array => {
-    // For large files, generate in chunks to avoid memory issues
-    const maxChunkSize = 10 * 1024 * 1024; // 10MB chunks
-    if (sizeInBytes <= maxChunkSize) {
-      return crypto.getRandomValues(new Uint8Array(sizeInBytes));
-    } else {
-      // For larger files, create a blob with random data
-      const chunks: Uint8Array[] = [];
-      let remaining = sizeInBytes;
+    // Web Crypto API has a limit of 65536 bytes per call
+    const MAX_CRYPTO_BYTES = 65536; // 64KB - the maximum allowed by crypto.getRandomValues
+    
+    // Create the result array of the full requested size
+    const result = new Uint8Array(sizeInBytes);
+    
+    // Fill the array in chunks of MAX_CRYPTO_BYTES
+    for (let offset = 0; offset < sizeInBytes; offset += MAX_CRYPTO_BYTES) {
+      const length = Math.min(MAX_CRYPTO_BYTES, sizeInBytes - offset);
+      const chunk = new Uint8Array(length);
       
-      while (remaining > 0) {
-        const chunkSize = Math.min(remaining, maxChunkSize);
-        chunks.push(crypto.getRandomValues(new Uint8Array(chunkSize)));
-        remaining -= chunkSize;
-      }
+      // Generate random values for this chunk
+      crypto.getRandomValues(chunk);
       
-      // Combine chunks
-      const result = new Uint8Array(sizeInBytes);
-      let offset = 0;
-      for (const chunk of chunks) {
-        result.set(chunk, offset);
-        offset += chunk.length;
-      }
-      
-      return result;
+      // Copy the chunk into the result array
+      result.set(chunk, offset);
     }
+    
+    return result;
   };
 
   // Generate random text
