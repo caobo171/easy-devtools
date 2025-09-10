@@ -1,5 +1,6 @@
 import {browser} from "wxt/browser";
 import ExtMessage, {MessageFrom, MessageType} from "@/entrypoints/types.ts";
+import { db, type AppState, type ToolState } from "@/utils/db";
 
 export default defineBackground(() => {
     console.log('Hello background!', {id: browser.runtime.id});// background.js
@@ -110,21 +111,81 @@ export default defineBackground(() => {
         }
     });
 
-    browser.runtime.onMessage.addListener(async (message: ExtMessage, sender, sendResponse: (message: any) => void) => {
-        console.log("background:")
-        console.log(message)
+    // Use a non-async listener to ensure we can return true synchronously
+    browser.runtime.onMessage.addListener((message: ExtMessage, sender, sendResponse: (message: any) => void) => {
         if (message.messageType === MessageType.clickExtIcon) {
             console.log(message)
             return true;
         } else if (message.messageType === MessageType.changeTheme || message.messageType === MessageType.changeLocale) {
-            let tabs = await browser.tabs.query({active: true, currentWindow: true});
-            console.log(`tabs:${tabs.length}`)
-            if (tabs) {
-                for (const tab of tabs) {
-                    await browser.tabs.sendMessage(tab.id!, message);
+            // Handle theme/locale changes asynchronously
+            browser.tabs.query({active: true, currentWindow: true}).then(tabs => {
+                console.log(`tabs:${tabs.length}`)
+                if (tabs) {
+                    tabs.forEach(tab => {
+                        browser.tabs.sendMessage(tab.id!, message);
+                    });
                 }
+            });
+            return true;
+        } else if (message.messageType === MessageType.saveAppState) {
+            // Save app state to IndexedDB
+            // Parse the JSON string from message.content
+            let appState: AppState;
+            try {
+                appState = JSON.parse(message.content as string) as AppState;
+                console.log('Successfully parsed app state:', appState);
+            } catch (parseError) {
+                console.error('Failed to parse app state JSON:', parseError);
+                sendResponse({ success: false, error: 'Invalid JSON data' });
+                return true;
             }
-
+            
+            appState.updatedAt = new Date();
+            
+            // Use promises instead of await
+            db.appState.orderBy('updatedAt').reverse().limit(1).toArray().then(existingStates => {
+                const existingState = existingStates[0];
+                
+                if (existingState) {
+                    // Update existing state
+                    db.appState.update(existingState.id!, appState).then(() => {
+                        console.log(`Updated state: ${existingState.id}`);
+                        sendResponse({ success: true, id: existingState.id });
+                    }).catch(error => {
+                        console.error('Failed to update state:', error);
+                        sendResponse({ success: false, error: String(error) });
+                    });
+                } else {
+                    // Create new state
+                    db.appState.add(appState).then(id => {
+                        console.log(`Created state: ${id}`);
+                        sendResponse({ success: true, id });
+                    }).catch(error => {
+                        console.error('Failed to add state:', error);
+                        sendResponse({ success: false, error: String(error) });
+                    });
+                }
+            }).catch(error => {
+                console.error('Failed to query existing states:', error);
+                sendResponse({ success: false, error: String(error) });
+            });
+            
+            return true; // Keep the message channel open for the async response
+        } else if (message.messageType === MessageType.loadAppState) {
+            // Load app state from IndexedDB using promises instead of await
+            db.appState.orderBy('updatedAt').reverse().limit(1).toArray().then(states => {
+                console.log('Loading state:', states);
+                if (states.length > 0) {
+                    sendResponse({ success: true, state: states[0] });
+                } else {
+                    sendResponse({ success: false, error: 'No saved state found' });
+                }
+            }).catch(error => {
+                console.error('Failed to load app state:', error);
+                sendResponse({ success: false, error: String(error) });
+            });
+            
+            return true; // Keep the message channel open for the async response
         }
     });
 

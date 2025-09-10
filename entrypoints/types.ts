@@ -6,7 +6,9 @@ export enum MessageType {
     showDatePopup = "showDatePopup",
     openInSidebar = "openInSidebar",
     translateText = "translateText",
-    analyzeText = "analyzeText"
+    analyzeText = "analyzeText",
+    saveAppState = "saveAppState",
+    loadAppState = "loadAppState"
 }
 
 export enum MessageFrom {

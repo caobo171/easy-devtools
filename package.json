@@ -25,6 +25,7 @@
     "@types/marked": "^6.0.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
+    "dexie": "^4.2.0",
     "i18next": "^23.11.1",
     "i18next-resources-to-backend": "^1.2.1",
     "lucide-react": "^0.365.0",

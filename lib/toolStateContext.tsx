@@ -1,27 +1,26 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { browser } from 'wxt/browser';
+import ExtMessage, { MessageType } from '@/entrypoints/types.ts';
+import { type ToolState as DbToolState } from '@/utils/db';
 
-// Define the structure of our tool state
-interface ToolState {
-  beautifyJSON: {
-    input: string;
-    parsedData: any;
-    viewMode: 'tree' | 'text';
-  };
-  urlEncoder: {
-    input: string;
-    output: string;
-    mode: 'encode' | 'decode';
-  };
-  // Add other tools here as needed
+// Use the ToolState type from our db.ts file
+type ToolState = DbToolState;
+
+// Define the structure for the app state
+interface AppState {
+  toolState: ToolState;
+  lastSelectedTool: string | null;
 }
 
 // Define the context type
 interface ToolStateContextType {
   toolState: ToolState;
+  lastSelectedTool: string | null;
   updateToolState: <T extends keyof ToolState>(
     tool: T,
     state: Partial<ToolState[T]>
   ) => void;
+  setLastSelectedTool: (toolId: string | null) => void;
 }
 
 // Create the context with a default value
@@ -42,9 +41,83 @@ const defaultToolState: ToolState = {
   // Add other tools with their default states
 };
 
+// Save state to IndexedDB via background script
+const saveState = async (state: AppState): Promise<void> => {
+  try {
+    const message = new ExtMessage(MessageType.saveAppState);
+    message.content = state as any; // Cast to any to avoid type issues
+    
+    return new Promise(async (resolve, reject) => {
+      browser.runtime.sendMessage(message, (response) => {
+        if (response && response.success) {
+          resolve();
+        } else {
+          console.error('Failed to save state:', response?.error);
+          reject(response?.error || 'Unknown error');
+        }
+      });
+    });
+  } catch (error) {
+    console.error('Failed to save state:', error);
+  }
+};
+
+// Load state from IndexedDB via background script
+const loadState = async (): Promise<AppState | null> => {
+  try {
+    const message = new ExtMessage(MessageType.loadAppState);
+    
+    return new Promise((resolve, reject) => {
+      browser.runtime.sendMessage(message, (response) => {
+        if (response && response.success && response.state) {
+          resolve(response.state as AppState);
+        } else {
+          console.error('Failed to load state:', response?.error);
+          resolve(null); // Return null instead of rejecting to handle first-time use case
+        }
+      });
+    });
+  } catch (error) {
+    console.error('Failed to load state:', error);
+    return null;
+  }
+};
+
 // Provider component
 export const ToolStateProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [toolState, setToolState] = useState<ToolState>(defaultToolState);
+  const [lastSelectedTool, setLastSelectedTool] = useState<string | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // Load state from IndexedDB on component mount
+  useEffect(() => {
+    const loadSavedState = async () => {
+      try {
+        const savedState = await loadState();
+        if (savedState) {
+          setToolState(savedState.toolState);
+          setLastSelectedTool(savedState.lastSelectedTool);
+        }
+        setIsInitialized(true);
+      } catch (error) {
+        console.error('Error loading saved state:', error);
+        setIsInitialized(true);
+      }
+    };
+
+    loadSavedState();
+  }, []);
+
+  // Save state to browser.storage.local whenever it changes
+  useEffect(() => {
+    if (isInitialized) {
+      const appState: AppState = {
+        toolState,
+        lastSelectedTool
+      };
+      saveState(appState);
+    }
+  }, [toolState, lastSelectedTool, isInitialized]);
 
   // Function to update a specific tool's state
   const updateToolState = <T extends keyof ToolState>(
@@ -61,7 +134,12 @@ export const ToolStateProvider: React.FC<{ children: ReactNode }> = ({ children 
   };
 
   return (
-    <ToolStateContext.Provider value={{ toolState, updateToolState }}>
+    <ToolStateContext.Provider value={{
+      toolState,
+      lastSelectedTool,
+      updateToolState,
+      setLastSelectedTool
+    }}>
       {children}
     </ToolStateContext.Provider>
   );

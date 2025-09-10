@@ -13,7 +13,7 @@ import Base64Encoder from './Tools/Base64Encoder';
 import HashGenerator from './Tools/HashGenerator';
 import ColorConverter from './Tools/ColorConverter';
 import MarkdownPreview from './Tools/MarkdownPreview';
-import { ToolStateProvider } from '@/lib/toolStateContext';
+import { ToolStateProvider, useToolState } from '@/lib/toolStateContext';
 import Sidebar, { Tool } from './Sidebar';
 
 type ToolWithComponent = Tool & {
@@ -33,10 +33,18 @@ const tools: ToolWithComponent[] = [
 	{ id: 'grammar', name: 'Grammar', icon: '✍️', keywords: ['spelling', 'check', 'writing'], component: () => <div>Grammar Tool</div> },
 ];
 
-export default () => {
-	const [selectedTool, setSelectedTool] = useState<string | null>(null);
+// Main app component that will be wrapped with ToolStateProvider
+const AppContent = () => {
+	const { lastSelectedTool, setLastSelectedTool } = useToolState();
+	const [selectedTool, setSelectedTool] = useState<string | null>(lastSelectedTool);
 	const { theme, toggleTheme } = useTheme();
 	const { t, i18n } = useTranslation();
+	
+	// Update global state when selected tool changes
+	const handleToolSelect = (toolId: string) => {
+		setSelectedTool(toolId);
+		setLastSelectedTool(toolId);
+	};
 
 	async function initI18n() {
 		let data = await browser.storage.local.get('i18n');
@@ -55,7 +63,7 @@ export default () => {
 				toggleTheme(message.content)
 			} else if (message.messageType == MessageType.convertToReadableDate) {
 				// Show DateFormat tool when date conversion is requested
-				setSelectedTool('dateformat');
+				handleToolSelect('dateformat');
 			}
 		});
 
@@ -84,30 +92,37 @@ export default () => {
 
 
 	return (
-		<ToolStateProvider>
-			<div className={cn(theme, 'h-full flex overflow-hidden')}>  
-				{/* Main workspace */}
-				<div className="flex-1 flex flex-col min-w-0">
-					{/* Header */}
-					<div className="border-b p-4">
-						<h1 className="text-xl font-semibold">DevTools Extension</h1>
-					</div>
-					
-					{/* Main content area */}
-					<div className="flex-1 p-4 overflow-auto">
-						<div className="w-full min-w-0">
-							{renderSelectedTool()}
-						</div>
+		<div className={cn(theme, 'h-full flex overflow-hidden')}>  
+			{/* Main workspace */}
+			<div className="flex-1 flex flex-col min-w-0">
+				{/* Header */}
+				<div className="border-b p-4">
+					<h1 className="text-xl font-semibold">DevTools Extension</h1>
+				</div>
+				
+				{/* Main content area */}
+				<div className="flex-1 p-4 overflow-auto">
+					<div className="w-full min-w-0">
+						{renderSelectedTool()}
 					</div>
 				</div>
-
-				{/* Tools sidebar */}
-				<Sidebar 
-					tools={tools}
-					selectedTool={selectedTool}
-					onSelectTool={setSelectedTool}
-				/>
 			</div>
-		</ToolStateProvider>
+
+			{/* Tools sidebar */}
+			<Sidebar 
+				tools={tools}
+				selectedTool={selectedTool}
+				onSelectTool={handleToolSelect}
+			/>
+		</div>
 	)
+};
+
+// Export the main component wrapped with ToolStateProvider
+export default () => {
+	return (
+		<ToolStateProvider>
+			<AppContent />
+		</ToolStateProvider>
+	);
 };
