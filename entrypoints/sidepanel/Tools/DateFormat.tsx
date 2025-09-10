@@ -1,25 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
+import { browser } from 'wxt/browser';
+import ExtMessage, { MessageType } from '@/entrypoints/types';
 
 export default function DateFormat() {
     const [inputDate, setInputDate] = useState('');
     const [results, setResults] = useState<Array<{format: string, value: string}>>([]);
 
-    const formatDate = () => {
-        if (!inputDate.trim()) return;
+    const formatDate = (dateInput?: string) => {
+        const inputToUse = dateInput || inputDate;
+        if (!inputToUse.trim()) return;
 
         let date: Date;
         
         // Try to parse the input as different formats
-        if (/^\d+$/.test(inputDate)) {
+        if (/^\d+$/.test(inputToUse)) {
             // Unix timestamp (seconds or milliseconds)
-            const timestamp = parseInt(inputDate);
+            const timestamp = parseInt(inputToUse);
             date = new Date(timestamp > 1000000000000 ? timestamp : timestamp * 1000);
         } else {
             // Regular date string
-            date = new Date(inputDate);
+            date = new Date(inputToUse);
         }
 
         if (isNaN(date.getTime())) {
@@ -42,6 +45,23 @@ export default function DateFormat() {
 
         setResults(formats);
     };
+
+    useEffect(() => {
+        const messageListener = (message: ExtMessage) => {
+            if (message.messageType === MessageType.convertToReadableDate && message.content) {
+                // Auto-fill the input with selected text
+                setInputDate(message.content);
+                // Auto-run the conversion
+                formatDate(message.content);
+            }
+        };
+
+        browser.runtime.onMessage.addListener(messageListener);
+
+        return () => {
+            browser.runtime.onMessage.removeListener(messageListener);
+        };
+    }, []);
 
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text);
@@ -69,7 +89,7 @@ export default function DateFormat() {
                             placeholder="e.g., 2024-01-01, 1704067200, or Jan 1 2024"
                             className="flex-1"
                         />
-                        <Button onClick={formatDate}>
+                        <Button onClick={() => formatDate()}>
                             Convert
                         </Button>
                     </div>
