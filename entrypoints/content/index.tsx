@@ -15,7 +15,12 @@ export default defineContentScript({
             position: 'inline',
             onMount: (container) => {
                 console.log(container);
-                const root = ReactDOM.createRoot(container);
+                // Create a div element to serve as the React root instead of using container directly
+                const appContainer = document.createElement('div');
+                appContainer.id = 'devtools-extension-root';
+                container.appendChild(appContainer);
+                
+                const root = ReactDOM.createRoot(appContainer);
                 root.render(
                     <ThemeProvider>
                         <App/>

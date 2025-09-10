@@ -13,14 +13,26 @@ import { useTranslation } from 'react-i18next';
 import Header from "@/entrypoints/sidepanel/header.tsx";
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import DateFormat from './Tools/DateFormat';
+
+type Tool = {
+	id: string;
+	name: string;
+	icon: string;
+	component: React.ComponentType;
+};
+
+const tools: Tool[] = [
+	{ id: 'dateformat', name: 'Date Format', icon: '📅', component: DateFormat },
+	{ id: 'translate', name: 'Translate', icon: '🌐', component: () => <div>Translate Tool</div> },
+	{ id: 'ocr', name: 'OCR', icon: '📄', component: () => <div>OCR Tool</div> },
+	{ id: 'grammar', name: 'Grammar', icon: '✍️', component: () => <div>Grammar Tool</div> },
+];
 
 export default () => {
-	const [showButton, setShowButton] = useState(true)
+	const [selectedTool, setSelectedTool] = useState<string | null>(null);
 	const { theme, toggleTheme } = useTheme();
 	const { t, i18n } = useTranslation();
-	const [url, setURL] = useState<string>('');
-
-	const iframeRef = useRef<HTMLIFrameElement>(null);
 
 	async function initI18n() {
 		let data = await browser.storage.local.get('i18n');
@@ -30,68 +42,6 @@ export default () => {
 	}
 
 	useEffect(() => {
-
-		(async () => {
-			await browser.declarativeNetRequest.updateSessionRules({
-				removeRuleIds: [1],
-				addRules: [{
-					id: 1,
-					priority: 1,
-					action: {
-						type: "modifyHeaders",
-						responseHeaders: [
-							{ header: "x-frame-options", operation: "remove" },
-							{ header: "content-security-policy", operation: "remove" },
-						],
-					},
-					condition: {
-						urlFilter: "*",
-						resourceTypes: ["main_frame", "sub_frame", "xmlhttprequest", "websocket"],
-					},
-				}],
-			});
-			// Get the iframe element
-			if (!iframeRef.current) {
-				return;
-			}
-
-			let iframe = iframeRef.current;
-			// Wait for the iframe to load
-			iframe.onload = () => {
-				const iframeDocument = iframe.contentDocument || iframe.contentWindow?.document;
-
-				// Create a style element
-				const style = document.createElement('style');
-				style.textContent = `
-					body {
-						background-color: lightblue;
-					}
-					h1 {
-						color: red;
-					}
-	
-					#below {
-						background-color: red;
-					}
-				`;
-
-				// Append the style element to the iframe's head
-				iframeDocument?.head.appendChild(style);
-			};
-		})()
-
-	}, [iframeRef])
-
-	useEffect(() => {
-
-		browser.storage.sync.get('activeUrl').then((data) => {
-
-			if (data.activeUrl) {
-				setURL(data.activeUrl)
-				openweb(data.activeUrl)
-			}
-		});
-
 		browser.runtime.onMessage.addListener((message: ExtMessage, sender, sendResponse) => {
 			console.log('sidepanel:')
 			console.log(message)
@@ -99,6 +49,9 @@ export default () => {
 				i18n.changeLanguage(message.content)
 			} else if (message.messageType == MessageType.changeTheme) {
 				toggleTheme(message.content)
+			} else if (message.messageType == MessageType.convertToReadableDate) {
+				// Show DateFormat tool when date conversion is requested
+				setSelectedTool('dateformat');
 			}
 		});
 
@@ -106,90 +59,66 @@ export default () => {
 	}, []);
 
 
-	function actionGo() {
-		var searchInput = url;
-		if (searchInput != "") {
-			// Check if the input is a valid URL
-			// capture groups:
-			// 1: protocol (https://)
-			// 2: domain (mail.google.com)
-			// 3: path (/chat/u/0/)
-			// 4: query string (?view=list)
-			// 5: fragment (#chat/home)
-			var urlRegex = /^(https?:\/\/)?((?:[\da-z.-]+)+\.(?:[a-z.]{2,})+)?((?:\/[-a-z\d%_.~+]*)*)(\?[;&a-z\d%_.~+=-]*)?(#.*)?$/i;
-			if (urlRegex.test(searchInput)) {
-				// If it is a URL, navigate to the page
-				if (searchInput.startsWith("http://www.") || searchInput.startsWith("https://www.")) {
-					openweb(searchInput);
-				} else if (searchInput.startsWith("http://") || searchInput.startsWith("https://")) {
-					openweb(searchInput);
-				} else {
-					openweb("https://" + searchInput);
-				}
-			} else {
-				if (searchInput.startsWith("file:///")) {
-					openweb(searchInput);
-				} else {
-					// // If it is not a URL, perform a text search
-					// performSearch(selectedsearch, searchInput);
-				}
-			}
+	const renderSelectedTool = () => {
+		if (!selectedTool) {
+			return (
+				<div className="flex items-center justify-center h-full text-gray-500">
+					<div className="text-center">
+						<h2 className="text-2xl font-semibold mb-2">Welcome to DevTools</h2>
+						<p>Select a tool from the sidebar to get started</p>
+					</div>
+				</div>
+			);
 		}
-	}
 
+		const tool = tools.find(t => t.id === selectedTool);
+		if (!tool) return null;
 
-	const openweb = async (currenturl: string) => {
-		await browser.declarativeNetRequest.updateSessionRules({
-			removeRuleIds: [1],
-			addRules: [{
-				id: 1,
-				priority: 1,
-				action: {
-					type: "modifyHeaders",
-					responseHeaders: [
-						{ header: "x-frame-options", operation: "remove" },
-						{ header: "content-security-policy", operation: "remove" },
-					],
-				},
-				condition: {
-					urlFilter: "*",
-					resourceTypes: ["main_frame", "sub_frame", "xmlhttprequest", "websocket"],
-				},
-			}],
-		});
-
-
-
-		if (iframeRef && iframeRef.current) {
-			// set active panel
-			// open that web page
-			iframeRef.current.src = currenturl;
-
-			browser.storage.sync.set({ activeUrl: currenturl });
-		}
+		const ToolComponent = tool.component;
+		return <ToolComponent />;
 	};
 
 
 	return (
-		<div className={cn(theme, 'h-full flex flex-col')}>
-			<div className='flex flex-row gap-x-4 p-4'>
-				<Input type="text" value={url} placeholder="Type something" onChange={(e) => {
-					setURL(e.target.value)
-				}} />
-				<Button onClick={() => {
-					actionGo();
-				}}
-				>
-					Go
-				</Button>
+		<div className={cn(theme, 'h-full flex')}>
+			{/* Main workspace */}
+			<div className="flex-1 flex flex-col">
+				{/* Header */}
+				<div className="border-b p-4">
+					<h1 className="text-xl font-semibold">DevTools Extension</h1>
+					<p className="text-sm text-gray-600">Your development toolkit</p>
+				</div>
+				
+				{/* Main content area */}
+				<div className="flex-1 p-4">
+					{renderSelectedTool()}
+				</div>
 			</div>
 
-
-			<iframe className='w-full h-full' ref={iframeRef}>
-
-			</iframe>
-
+			{/* Tools sidebar */}
+			<div className="w-64 border-l bg-gray-50 dark:bg-gray-900 flex flex-col">
+				<div className="p-4 border-b">
+					<h2 className="font-semibold text-sm text-gray-700 dark:text-gray-300">TOOLS</h2>
+				</div>
+				
+				<div className="flex-1 p-2">
+					{tools.map((tool) => (
+						<button
+							key={tool.id}
+							onClick={() => setSelectedTool(tool.id)}
+							className={cn(
+								"w-full flex items-center gap-3 p-3 rounded-lg text-left transition-colors mb-2",
+								selectedTool === tool.id
+									? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300"
+									: "hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+							)}
+						>
+							<span className="text-lg">{tool.icon}</span>
+							<span className="text-sm font-medium">{tool.name}</span>
+						</button>
+					))}
+				</div>
+			</div>
 		</div>
-
 	)
 };

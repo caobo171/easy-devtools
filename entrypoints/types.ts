@@ -3,7 +3,10 @@ export enum MessageType {
     changeTheme = "changeTheme",
     changeLocale = "changeLocale",
     convertToReadableDate = "convertToReadableDate",
-    showDatePopup = "showDatePopup"
+    showDatePopup = "showDatePopup",
+    openInSidebar = "openInSidebar",
+    translateText = "translateText",
+    analyzeText = "analyzeText"
 }
 
 export enum MessageFrom {

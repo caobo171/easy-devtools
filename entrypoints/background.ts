@@ -7,10 +7,31 @@ export default defineBackground(() => {
     // @ts-ignore
     browser.sidePanel.setPanelBehavior({openPanelOnActionClick: true}).catch((error: any) => console.error(error));
 
-    // Create context menu for date conversion
+    // Create context menu items
+    browser.contextMenus.create({
+        id: "devtools-parent",
+        title: "DevTools Extension",
+        contexts: ["selection"]
+    });
+
     browser.contextMenus.create({
         id: "convertToReadableDate",
-        title: "Convert to readable date",
+        parentId: "devtools-parent",
+        title: "📅 Convert to readable date",
+        contexts: ["selection"]
+    });
+
+    browser.contextMenus.create({
+        id: "openInSidebar",
+        parentId: "devtools-parent", 
+        title: "📋 Open in sidebar",
+        contexts: ["selection"]
+    });
+
+    browser.contextMenus.create({
+        id: "analyzeText",
+        parentId: "devtools-parent",
+        title: "🔍 Analyze text",
         contexts: ["selection"]
     });
 
@@ -24,15 +45,32 @@ export default defineBackground(() => {
 
     // Handle context menu clicks
     browser.contextMenus.onClicked.addListener(async (info, tab) => {
-        if (info.menuItemId === "convertToReadableDate" && info.selectionText) {
-            // Send message to content script with selected text
-            const message = new ExtMessage(MessageType.convertToReadableDate);
-            message.content = info.selectionText;
-            message.from = MessageFrom.background;
-            
-            if (tab?.id) {
-                await browser.tabs.sendMessage(tab.id, message);
-            }
+        if (!info.selectionText || !tab?.id) return;
+
+        const message = new ExtMessage(MessageType.convertToReadableDate);
+        message.content = info.selectionText;
+        message.from = MessageFrom.background;
+
+        switch (info.menuItemId) {
+            case "convertToReadableDate":
+                message.messageType = MessageType.convertToReadableDate;
+                break;
+            case "openInSidebar":
+                message.messageType = MessageType.openInSidebar;
+                break;
+            case "analyzeText":
+                message.messageType = MessageType.analyzeText;
+                break;
+            default:
+                return;
+        }
+
+        try {
+            await browser.tabs.sendMessage(tab.id, message);
+        } catch (error) {
+            console.log('Content script not ready, sending directly to sidepanel:', error);
+            // If content script is not available, send directly to sidepanel
+            browser.runtime.sendMessage(message);
         }
     });
 
