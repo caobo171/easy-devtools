@@ -1457,6 +1457,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/marked@npm:^6.0.0":
+  version: 6.0.0
+  resolution: "@types/marked@npm:6.0.0"
+  dependencies:
+    marked: "*"
+  checksum: ad4cd5a405604b27efb4d3979b05869f3069529d1f5b2a38039de7c96e57270f03e7580efe327ca1c136ec22a355d0a7d8578346bd2af8397fdd6bb76ca1b084
+  languageName: node
+  linkType: hard
+
 "@types/minimatch@npm:^3.0.5":
   version: 3.0.5
   resolution: "@types/minimatch@npm:3.0.5"
@@ -2260,6 +2269,7 @@ __metadata:
     "@radix-ui/react-slot": ^1.1.1
     "@radix-ui/react-tooltip": ^1.0.7
     "@thedutchcoder/postcss-rem-to-px": ^0.0.2
+    "@types/marked": ^6.0.0
     "@types/react": ^18.2.46
     "@types/react-dom": ^18.2.18
     "@vitejs/plugin-react": ^4.2.1
@@ -2269,6 +2279,7 @@ __metadata:
     i18next: ^23.11.1
     i18next-resources-to-backend: ^1.2.1
     lucide-react: ^0.365.0
+    marked: ^16.2.1
     postcss: ^8.4.38
     react: ^18.2.0
     react-dom: ^18.2.0
@@ -3889,6 +3900,15 @@ __metadata:
   version: 2.0.1
   resolution: "many-keys-map@npm:2.0.1"
   checksum: ba2b93d41fe3fa5e611ffa2a3ddb7ec5765ae5acc473ee44061e4fb8a69b723e01b84b70ed2aa7700bdbc78f844185af9320287197052df518e79c6ec2070753
+  languageName: node
+  linkType: hard
+
+"marked@npm:*, marked@npm:^16.2.1":
+  version: 16.2.1
+  resolution: "marked@npm:16.2.1"
+  bin:
+    marked: bin/marked.js
+  checksum: ca70df54e4ebd7f2c4707da0ceef5ff000a52374e0cf94e840a57e4767f3fa7e751e8e3817e91e3c80a33e76f8d8e13d9b7dccf3aed45b9362dce486837d1236
   languageName: node
   linkType: hard
 

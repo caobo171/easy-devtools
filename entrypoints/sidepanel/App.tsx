@@ -14,6 +14,12 @@ import Header from "@/entrypoints/sidepanel/header.tsx";
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import DateFormat from './Tools/DateFormat';
+import BeautifyJSON from './Tools/BeautifyJSON';
+import URLEncoder from './Tools/URLEncoder';
+import Base64Encoder from './Tools/Base64Encoder';
+import HashGenerator from './Tools/HashGenerator';
+import ColorConverter from './Tools/ColorConverter';
+import MarkdownPreview from './Tools/MarkdownPreview';
 
 type Tool = {
 	id: string;
@@ -24,6 +30,12 @@ type Tool = {
 
 const tools: Tool[] = [
 	{ id: 'dateformat', name: 'Date Format', icon: '📅', component: DateFormat },
+	{ id: 'beautifyjson', name: 'JSON Beautifier', icon: '🎨', component: BeautifyJSON },
+	{ id: 'urlencoder', name: 'URL Encoder', icon: '🔗', component: URLEncoder },
+	{ id: 'base64encoder', name: 'Base64 Encoder', icon: '🔐', component: Base64Encoder },
+	{ id: 'hashgenerator', name: 'Hash Generator', icon: '🔐', component: HashGenerator },
+	{ id: 'colorconverter', name: 'Color Converter', icon: '🎨', component: ColorConverter },
+	{ id: 'markdownpreview', name: 'Markdown Preview', icon: '📝', component: MarkdownPreview },
 	{ id: 'translate', name: 'Translate', icon: '🌐', component: () => <div>Translate Tool</div> },
 	{ id: 'ocr', name: 'OCR', icon: '📄', component: () => <div>OCR Tool</div> },
 	{ id: 'grammar', name: 'Grammar', icon: '✍️', component: () => <div>Grammar Tool</div> },
