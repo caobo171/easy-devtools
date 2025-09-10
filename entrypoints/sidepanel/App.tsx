@@ -15,6 +15,7 @@ import ColorConverter from './Tools/ColorConverter';
 import MarkdownPreview from './Tools/MarkdownPreview';
 import { ToolStateProvider, useToolState } from '@/lib/toolStateContext';
 import Sidebar, { Tool } from './Sidebar';
+import GenerateFile from './Tools/GenerateFile';
 
 type ToolWithComponent = Tool & {
 	component: React.ComponentType;
@@ -31,6 +32,7 @@ const tools: ToolWithComponent[] = [
 	{ id: 'translate', name: 'Translate', icon: '🌐', keywords: ['language', 'translation'], component: () => <div>Translate Tool</div> },
 	{ id: 'ocr', name: 'OCR', icon: '📄', keywords: ['text', 'image', 'recognition'], component: () => <div>OCR Tool</div> },
 	{ id: 'grammar', name: 'Grammar', icon: '✍️', keywords: ['spelling', 'check', 'writing'], component: () => <div>Grammar Tool</div> },
+	{ id: 'generatefile', name: 'Generate File', icon: '📄', keywords: ['text', 'image', 'recognition'], component: GenerateFile },
 ];
 
 // Main app component that will be wrapped with ToolStateProvider
