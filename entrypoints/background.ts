@@ -10,7 +10,7 @@ export default defineBackground(() => {
     // Create context menu items
     browser.contextMenus.create({
         id: "devtools-parent",
-        title: "DevTools Extension",
+        title: "Easy devtools",
         contexts: ["selection"]
     });
 
