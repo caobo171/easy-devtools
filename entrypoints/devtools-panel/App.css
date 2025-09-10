@@ -1,0 +1,117 @@
+.devtools-container {
+    font-family: system-ui, -apple-system, sans-serif;
+    margin: 0;
+    padding: 16px;
+    background: #f5f5f5;
+    min-height: 100vh;
+}
+
+.devtools-panel {
+    max-width: 500px;
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.devtools-panel h2 {
+    margin: 0 0 16px 0;
+    color: #333;
+    font-size: 20px;
+}
+
+.instructions {
+    margin-bottom: 20px;
+    padding: 12px;
+    background: #e3f2fd;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #1565c0;
+    line-height: 1.4;
+}
+
+.input-group {
+    margin-bottom: 16px;
+}
+
+.input-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #333;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.input-group input:focus {
+    outline: none;
+    border-color: #4285f4;
+    box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
+}
+
+.button-group {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.button-group button {
+    background: #4285f4;
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.button-group button:hover {
+    background: #3367d6;
+}
+
+.button-group button:active {
+    background: #2851a3;
+}
+
+.result {
+    margin-top: 16px;
+    padding: 12px;
+    border-radius: 4px;
+    border-left: 4px solid;
+}
+
+.result.success {
+    background: #e8f5e8;
+    border-left-color: #4caf50;
+    color: #2e7d32;
+}
+
+.result.error {
+    background: #ffeaea;
+    border-left-color: #f44336;
+    color: #c62828;
+}
+
+.result h3 {
+    margin: 0 0 12px 0;
+    font-size: 16px;
+}
+
+.result p {
+    margin: 4px 0;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.result p strong {
+    color: #333;
+}

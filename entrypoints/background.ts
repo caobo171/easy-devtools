@@ -7,32 +7,36 @@ export default defineBackground(() => {
     // @ts-ignore
     browser.sidePanel.setPanelBehavior({openPanelOnActionClick: true}).catch((error: any) => console.error(error));
 
-    // Create context menu items
+    // Create context menu items - these work in devtools too
     browser.contextMenus.create({
         id: "devtools-parent",
         title: "Easy devtools",
-        contexts: ["selection"]
+        contexts: ["selection", "page"],
+        documentUrlPatterns: ["*://*/*", "devtools://*/*"]
     });
 
     browser.contextMenus.create({
         id: "convertToReadableDate",
         parentId: "devtools-parent",
         title: "📅 Convert to readable date",
-        contexts: ["selection"]
+        contexts: ["selection", "page"],
+        documentUrlPatterns: ["*://*/*", "devtools://*/*"]
     });
 
     browser.contextMenus.create({
         id: "openInSidebar",
         parentId: "devtools-parent", 
         title: "📋 Open in sidebar",
-        contexts: ["selection"]
+        contexts: ["selection", "page"],
+        documentUrlPatterns: ["*://*/*", "devtools://*/*"]
     });
 
     browser.contextMenus.create({
         id: "analyzeText",
         parentId: "devtools-parent",
         title: "🔍 Analyze text",
-        contexts: ["selection"]
+        contexts: ["selection", "page"],
+        documentUrlPatterns: ["*://*/*", "devtools://*/*"]
     });
 
     //monitor the event from extension icon click
@@ -84,6 +88,28 @@ export default defineBackground(() => {
     });
 
     // background.js
+    // Handle keyboard shortcuts
+    browser.commands.onCommand.addListener(async (command) => {
+        if (command === "convert-timestamp") {
+            const tabs = await browser.tabs.query({active: true, currentWindow: true});
+            if (tabs[0]?.id) {
+                // Try to get selected text and convert it
+                browser.tabs.executeScript(tabs[0].id, {
+                    code: `
+                        const selectedText = window.getSelection().toString().trim();
+                        if (selectedText) {
+                            chrome.runtime.sendMessage({
+                                messageType: 'convertToReadableDate',
+                                content: selectedText,
+                                from: 'keyboard-shortcut'
+                            });
+                        }
+                    `
+                });
+            }
+        }
+    });
+
     browser.runtime.onMessage.addListener(async (message: ExtMessage, sender, sendResponse: (message: any) => void) => {
         console.log("background:")
         console.log(message)

@@ -8,7 +8,17 @@ export default defineConfig({
         action: {},
         name: '__MSG_extName__',
         description: '__MSG_extDescription__',
-        default_locale: "en"
+        default_locale: "en",
+        devtools_page: "entrypoints/devtools.html",
+        commands: {
+            "convert-timestamp": {
+                "suggested_key": {
+                    "default": "Ctrl+Shift+D",
+                    "mac": "Command+Shift+D"
+                },
+                "description": "Convert selected timestamp to readable date"
+            }
+        }
     },
     vite: () => ({
         plugins: [react()],
