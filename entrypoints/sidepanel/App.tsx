@@ -68,6 +68,16 @@ const AppContent = () => {
 			} else if (message.messageType == MessageType.convertToReadableDate) {
 				// Show DateFormat tool when date conversion is requested
 				handleToolSelect('dateformat');
+			} else if (message.messageType == MessageType.openInSidebar) {
+				// Handle opening content in sidebar - you can customize which tool to show
+				// For now, let's show the first tool or a default tool
+				handleToolSelect('dateformat'); // or any other appropriate tool
+			} else if (message.messageType == MessageType.takeScreenshot) {
+				// Handle take screenshot from context menu
+				handleToolSelect('screenshot');
+			} else if (message.messageType == MessageType.analyzeText) {
+				// Handle analyze text from context menu
+				handleToolSelect('translate'); // or create a dedicated analyze tool
 			}
 		});
 

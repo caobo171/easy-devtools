@@ -39,8 +39,6 @@ export default () => {
             }
             
             if (message.messageType === MessageType.takeScreenshot) {
-
-                console.log('takeScreenshot')
                 setShowScreenshotOverlay(true);
                 sendResponse({ success: true });
                 return true;

@@ -6,7 +6,9 @@ export default defineBackground(() => {
     console.log('Hello background!', { id: browser.runtime.id });// background.js
 
     // @ts-ignore
-    browser.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch((error: any) => console.error(error));
+    browser.sidePanel.setPanelBehavior({ 
+        openPanelOnActionClick: true 
+    }).catch((error: any) => console.error(error));
 
     // Create context menu items - these work in devtools too
     browser.contextMenus.create({
@@ -17,10 +19,18 @@ export default defineBackground(() => {
     });
 
     browser.contextMenus.create({
+        id: "analyzeText",
+        parentId: "devtools-parent",
+        title: "🔍 Analyze text",
+        contexts: ["selection", "page", "editable", "frame", "link", "image"],
+        documentUrlPatterns: ["*://*/*", "devtools://*/*"]
+    });
+
+    browser.contextMenus.create({
         id: "convertToReadableDate",
         parentId: "devtools-parent",
         title: "📅 Convert to readable date",
-        contexts: ["selection", "page"],
+        contexts: ["selection", "page", "editable", "frame", "link", "image"],
         documentUrlPatterns: ["*://*/*", "devtools://*/*"]
     });
 
@@ -28,15 +38,15 @@ export default defineBackground(() => {
         id: "openInSidebar",
         parentId: "devtools-parent",
         title: "📋 Open in sidebar",
-        contexts: ["selection", "page"],
+        contexts: ["selection", "page", "editable", "frame", "link", "image"],
         documentUrlPatterns: ["*://*/*", "devtools://*/*"]
     });
 
     browser.contextMenus.create({
-        id: "analyzeText",
+        id: "takeScreenshot",
         parentId: "devtools-parent",
-        title: "🔍 Analyze text",
-        contexts: ["selection", "page"],
+        title: "📸 Take screenshot",
+        contexts: ["selection", "page", "editable", "frame", "link", "image"],
         documentUrlPatterns: ["*://*/*", "devtools://*/*"]
     });
 
@@ -50,10 +60,10 @@ export default defineBackground(() => {
 
     // Handle context menu clicks
     browser.contextMenus.onClicked.addListener(async (info, tab) => {
-        if (!info.selectionText || !tab?.id) return;
+        if (!tab?.id) return;
 
         const message = new ExtMessage(MessageType.convertToReadableDate);
-        message.content = info.selectionText;
+        message.content = info.selectionText || '';
         message.from = MessageFrom.background;
 
         switch (info.menuItemId) {
@@ -64,6 +74,11 @@ export default defineBackground(() => {
                 break;
             case "openInSidebar":
                 message.messageType = MessageType.openInSidebar;
+                // Open sidepanel first
+                await browser.sidePanel.open({ tabId: tab.id });
+                break;
+            case "takeScreenshot":
+                message.messageType = MessageType.takeScreenshot;
                 // Open sidepanel first
                 await browser.sidePanel.open({ tabId: tab.id });
                 break;
@@ -79,7 +94,7 @@ export default defineBackground(() => {
         // Wait a bit for sidepanel to load, then send message
         setTimeout(() => {
             browser.runtime.sendMessage(message);
-        }, 100);
+        }, 500);
 
         try {
             await browser.tabs.sendMessage(tab.id, message);
