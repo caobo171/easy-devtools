@@ -4,7 +4,13 @@ import { Card } from '@/components/ui/card';
 import { browser } from 'wxt/browser';
 import { MessageType } from '@/entrypoints/types';
 
-export default function VideoRecordingTool() {
+interface VideoRecordingToolProps {
+    initialVideoData?: string | null;
+    initialVideoType?: 'recorded' | 'uploaded';
+    initialVideoFileName?: string;
+}
+
+export default function VideoRecordingTool({ initialVideoData, initialVideoType, initialVideoFileName }: VideoRecordingToolProps = {}) {
     const [isRecording, setIsRecording] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
     const [recordedVideo, setRecordedVideo] = useState<string | null>(null);
@@ -26,6 +32,18 @@ export default function VideoRecordingTool() {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
+        // Set initial video data if provided
+        if (initialVideoData) {
+            if (initialVideoType === 'uploaded') {
+                setUploadedVideo(initialVideoData);
+                setUploadedFileName(initialVideoFileName || 'video.webm');
+                setActiveTab('upload');
+            } else {
+                setRecordedVideo(initialVideoData);
+                setActiveTab('record');
+            }
+        }
+
         return () => {
             // Cleanup on unmount
             stopRecording();
@@ -40,7 +58,7 @@ export default function VideoRecordingTool() {
                 URL.revokeObjectURL(uploadedVideo);
             }
         };
-    }, []);
+    }, [initialVideoData, initialVideoType, initialVideoFileName]);
 
     const getQualityConstraints = () => {
         switch (recordingQuality) {
@@ -232,6 +250,42 @@ export default function VideoRecordingTool() {
         }
     };
 
+    const openRecordedVideoInNewTab = async () => {
+        if (!recordedVideo) return;
+
+        try {
+            // Store the video data in browser storage
+            await browser.storage.local.set({ videoData: recordedVideo, videoType: 'recorded' });
+            
+            // Open the new tab
+            const newTab = await browser.tabs.create({
+                url: '/newtab.html'
+            });
+            
+            console.log('Opened recorded video in new tab:', newTab.id);
+        } catch (error) {
+            console.error('Failed to open recorded video in new tab:', error);
+        }
+    };
+
+    const openUploadedVideoInNewTab = async () => {
+        if (!uploadedVideo) return;
+
+        try {
+            // Store the video data in browser storage
+            await browser.storage.local.set({ videoData: uploadedVideo, videoType: 'uploaded', videoFileName: uploadedFileName });
+            
+            // Open the new tab
+            const newTab = await browser.tabs.create({
+                url: '/newtab.html'
+            });
+            
+            console.log('Opened uploaded video in new tab:', newTab.id);
+        } catch (error) {
+            console.error('Failed to open uploaded video in new tab:', error);
+        }
+    };
+
     const formatTime = (seconds: number) => {
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
@@ -370,6 +424,9 @@ export default function VideoRecordingTool() {
                                 <Button onClick={downloadVideo} variant="outline" size="sm">
                                     💾 Download
                                 </Button>
+                                <Button onClick={openRecordedVideoInNewTab} variant="outline" size="sm">
+                                    🔗 Open in New Tab
+                                </Button>
                                 <Button onClick={clearRecording} variant="outline" size="sm">
                                     🗑️ Clear
                                 </Button>
@@ -442,6 +499,9 @@ export default function VideoRecordingTool() {
                                     <div className="flex gap-2">
                                         <Button onClick={downloadUploadedVideo} variant="outline" size="sm">
                                             💾 Download
+                                        </Button>
+                                        <Button onClick={openUploadedVideoInNewTab} variant="outline" size="sm">
+                                            🔗 Open in New Tab
                                         </Button>
                                         <Button onClick={clearUploadedVideo} variant="outline" size="sm">
                                             🗑️ Clear

@@ -30,6 +30,9 @@ export default defineConfig({
                 },
                 "description": "Convert selected timestamp to readable date"
             }
+        },
+        chrome_url_overrides: {
+            newtab: "entrypoints/newtab.html"
         }
     },
     vite: () => ({

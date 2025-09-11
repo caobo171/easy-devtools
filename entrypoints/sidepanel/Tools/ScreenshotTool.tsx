@@ -27,7 +27,11 @@ interface Annotation {
 
 type EditMode = 'crop' | 'text' | 'arrow' | 'rectangle' | 'circle' | 'blur' | null;
 
-export default function ScreenshotTool() {
+interface ScreenshotToolProps {
+    initialImage?: string | null;
+}
+
+export default function ScreenshotTool({ initialImage }: ScreenshotToolProps) {
     const [capturedImage, setCapturedImage] = useState<string | null>(null);
     const [isCapturing, setIsCapturing] = useState(false);
     const [cropArea, setCropArea] = useState<CropArea | null>(null);
@@ -45,6 +49,11 @@ export default function ScreenshotTool() {
     const imageRef = useRef<HTMLImageElement>(null);
 
     useEffect(() => {
+        // Set initial image if provided
+        if (initialImage) {
+            setCapturedImage(initialImage);
+        }
+
         // Listen for screenshot messages
         const messageListener = (message: any) => {
             if (message.messageType === MessageType.screenshotCaptured) {
@@ -55,7 +64,7 @@ export default function ScreenshotTool() {
 
         browser.runtime.onMessage.addListener(messageListener);
         return () => browser.runtime.onMessage.removeListener(messageListener);
-    }, []);
+    }, [initialImage]);
 
     const takeScreenshot = async () => {
         setIsCapturing(true);
@@ -104,6 +113,44 @@ export default function ScreenshotTool() {
                 height: 0
             };
             setCurrentAnnotation(newAnnotation);
+        }
+    };
+
+    const downloadImage = () => {
+        if (!capturedImage) return;
+
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        canvas.toBlob((blob) => {
+            if (blob) {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `screenshot-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.png`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+        });
+    };
+
+    const openInNewTab = async () => {
+        if (!capturedImage) return;
+
+        try {
+            // Store the image data in browser storage
+            await browser.storage.local.set({ screenshotData: capturedImage });
+            
+            // Open the new tab with a direct URL
+            const newTab = await browser.tabs.create({
+                url: '/newtab.html'
+            });
+            
+            console.log('Opened screenshot editor in new tab:', newTab.id);
+        } catch (error) {
+            console.error('Failed to open in new tab:', error);
         }
     };
 
@@ -322,14 +369,6 @@ export default function ScreenshotTool() {
         setCropArea(null);
     };
 
-    const downloadImage = () => {
-        if (!capturedImage) return;
-
-        const link = document.createElement('a');
-        link.download = `screenshot-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.png`;
-        link.href = capturedImage;
-        link.click();
-    };
 
     const addTextAnnotation = () => {
         if (textInput.trim() && textPosition) {
@@ -404,6 +443,9 @@ export default function ScreenshotTool() {
                         </Button>
                         <Button onClick={downloadImage} variant="outline">
                             💾 Download
+                        </Button>
+                        <Button onClick={openInNewTab} variant="outline">
+                            🔗 Open in New Tab
                         </Button>
                         {cropArea && editMode === 'crop' && (
                             <Button onClick={applyCrop} variant="outline">
