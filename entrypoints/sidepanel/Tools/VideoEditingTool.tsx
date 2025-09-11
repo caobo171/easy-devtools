@@ -13,12 +13,17 @@ export default function VideoRecordingTool() {
     const [recordingQuality, setRecordingQuality] = useState<'720p' | '1080p' | '4k'>('1080p');
     const [includeAudio, setIncludeAudio] = useState(true);
     const [recordingSource, setRecordingSource] = useState<'screen' | 'tab' | 'window'>('screen');
+    const [uploadedVideo, setUploadedVideo] = useState<string | null>(null);
+    const [uploadedFileName, setUploadedFileName] = useState<string>('');
+    const [activeTab, setActiveTab] = useState<'record' | 'upload'>('record');
     
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const streamRef = useRef<MediaStream | null>(null);
     const chunksRef = useRef<Blob[]>([]);
     const timerRef = useRef<NodeJS.Timeout | null>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
+    const uploadVideoRef = useRef<HTMLVideoElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         return () => {
@@ -29,6 +34,10 @@ export default function VideoRecordingTool() {
             }
             if (timerRef.current) {
                 clearInterval(timerRef.current);
+            }
+            // Cleanup uploaded video URL
+            if (uploadedVideo) {
+                URL.revokeObjectURL(uploadedVideo);
             }
         };
     }, []);
@@ -176,6 +185,53 @@ export default function VideoRecordingTool() {
         setError(null);
     };
 
+    const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            // Check if it's a video file
+            if (!file.type.startsWith('video/')) {
+                setError('Please select a valid video file.');
+                return;
+            }
+            
+            // Clear any existing uploaded video
+            if (uploadedVideo) {
+                URL.revokeObjectURL(uploadedVideo);
+            }
+            
+            const videoUrl = URL.createObjectURL(file);
+            setUploadedVideo(videoUrl);
+            setUploadedFileName(file.name);
+            setError(null);
+        }
+    };
+
+    const triggerFileUpload = () => {
+        fileInputRef.current?.click();
+    };
+
+    const clearUploadedVideo = () => {
+        if (uploadedVideo) {
+            URL.revokeObjectURL(uploadedVideo);
+            setUploadedVideo(null);
+            setUploadedFileName('');
+        }
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    };
+
+    const downloadUploadedVideo = () => {
+        if (uploadedVideo && uploadedFileName) {
+            const a = document.createElement('a');
+            a.href = uploadedVideo;
+            a.download = uploadedFileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+    };
+
     const formatTime = (seconds: number) => {
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
@@ -199,10 +255,30 @@ export default function VideoRecordingTool() {
                 </Card>
             )}
 
+            {/* Tab Navigation */}
+            <div className="flex gap-2 mb-4">
+                <Button
+                    onClick={() => setActiveTab('record')}
+                    variant={activeTab === 'record' ? 'default' : 'outline'}
+                    className="flex-1"
+                >
+                    🎬 Record Screen
+                </Button>
+                <Button
+                    onClick={() => setActiveTab('upload')}
+                    variant={activeTab === 'upload' ? 'default' : 'outline'}
+                    className="flex-1"
+                >
+                    📁 Upload Video
+                </Button>
+            </div>
+
             <div className="space-y-4">
-                {/* Recording Settings */}
-                <Card className="p-4">
-                    <h3 className="font-semibold mb-3">⚙️ Recording Settings</h3>
+                {activeTab === 'record' && (
+                    <>
+                        {/* Recording Settings */}
+                        <Card className="p-4">
+                            <h3 className="font-semibold mb-3">⚙️ Recording Settings</h3>
                     
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
@@ -307,6 +383,81 @@ export default function VideoRecordingTool() {
                             className="w-full max-h-96 rounded-lg bg-black"
                         />
                     </Card>
+                )}
+                    </>
+                )}
+
+                {activeTab === 'upload' && (
+                    <>
+                        {/* File Upload */}
+                        <Card className="p-4">
+                            <h3 className="font-semibold mb-3">📁 Upload Video File</h3>
+                            
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="video/*"
+                                onChange={handleFileUpload}
+                                className="hidden"
+                            />
+                            
+                            <div className="space-y-4">
+                                <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center">
+                                    {!uploadedVideo ? (
+                                        <div>
+                                            <div className="text-4xl mb-4">🎥</div>
+                                            <p className="text-gray-600 dark:text-gray-400 mb-4">
+                                                Select a video file from your computer
+                                            </p>
+                                            <Button onClick={triggerFileUpload}>
+                                                📁 Choose Video File
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <div>
+                                            <div className="text-4xl mb-4">✅</div>
+                                            <p className="text-gray-600 dark:text-gray-400 mb-2">
+                                                Video uploaded successfully
+                                            </p>
+                                            <p className="font-medium mb-4">{uploadedFileName}</p>
+                                            <div className="flex gap-2 justify-center">
+                                                <Button onClick={triggerFileUpload} variant="outline">
+                                                    🔄 Change File
+                                                </Button>
+                                                <Button onClick={clearUploadedVideo} variant="outline">
+                                                    🗑️ Remove
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </Card>
+
+                        {/* Uploaded Video Preview */}
+                        {uploadedVideo && (
+                            <Card className="p-4">
+                                <div className="flex justify-between items-center mb-3">
+                                    <h3 className="font-semibold">📹 Uploaded Video</h3>
+                                    <div className="flex gap-2">
+                                        <Button onClick={downloadUploadedVideo} variant="outline" size="sm">
+                                            💾 Download
+                                        </Button>
+                                        <Button onClick={clearUploadedVideo} variant="outline" size="sm">
+                                            🗑️ Clear
+                                        </Button>
+                                    </div>
+                                </div>
+                                
+                                <video
+                                    ref={uploadVideoRef}
+                                    src={uploadedVideo}
+                                    controls
+                                    className="w-full max-h-96 rounded-lg bg-black"
+                                />
+                            </Card>
+                        )}
+                    </>
                 )}
             </div>
 

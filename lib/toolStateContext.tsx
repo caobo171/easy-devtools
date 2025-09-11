@@ -45,7 +45,7 @@ const defaultToolState: ToolState = {
 const saveState = async (state: AppState): Promise<void> => {
   try {
     const message = new ExtMessage(MessageType.saveAppState);
-    message.content = state as any; // Cast to any to avoid type issues
+    message.content = JSON.stringify(state); // Cast to any to avoid type issues
     
     return new Promise(async (resolve, reject) => {
       browser.runtime.sendMessage(message, (response) => {

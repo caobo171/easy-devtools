@@ -150,6 +150,7 @@ export default defineBackground(() => {
                 appState = JSON.parse(message.content as string) as AppState;
                 console.log('Successfully parsed app state:', appState);
             } catch (parseError) {
+                console.log(message.content);
                 console.error('Failed to parse app state JSON:', parseError);
                 sendResponse({ success: false, error: 'Invalid JSON data' });
                 return true;
