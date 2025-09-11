@@ -11,15 +11,10 @@ import {useTranslation} from "react-i18next";
 import {useTheme} from "@/components/theme-provider.tsx";
 import {DatePopup} from "@/entrypoints/content/date-popup.tsx";
 import {convertToReadableDate, DateConversionResult} from "@/lib/dateUtils";
+import {ScreenshotOverlay} from "@/entrypoints/content/screenshot-overlay.tsx";
 
 export default () => {
-    const [showContent, setShowContent] = useState(true);
-    const [showButton, setShowButton] = useState(false)
-    const [showCard, setShowCard] = useState(false)
-    const [sidebarType, setSidebarType] = useState<SidebarType>(SidebarType.home);
-    const [headTitle, setHeadTitle] = useState("home")
-    const [buttonStyle, setButtonStyle] = useState<any>();
-    const [cardStyle, setCardStyle] = useState<any>();
+    const [showScreenshotOverlay, setShowScreenshotOverlay] = useState(false);
     const cardRef = useRef<HTMLDivElement>(null);
     const {i18n} = useTranslation();
     const {theme, toggleTheme} = useTheme();
@@ -43,6 +38,14 @@ export default () => {
                 return true;
             }
             
+            if (message.messageType === MessageType.takeScreenshot) {
+
+                console.log('takeScreenshot')
+                setShowScreenshotOverlay(true);
+                sendResponse({ success: true });
+                return true;
+            }
+            
             return false;
         };
 
@@ -53,9 +56,28 @@ export default () => {
         };
     }, []);
 
+    const handleScreenshotCapture = (imageData: string) => {
+        // Send the captured image to the sidepanel
+        browser.runtime.sendMessage({
+            messageType: MessageType.screenshotCaptured,
+            content: imageData
+        });
+        setShowScreenshotOverlay(false);
+    };
+
+    const handleScreenshotCancel = () => {
+        setShowScreenshotOverlay(false);
+    };
+
     return (
         <div className={theme}>
            {/* Content script UI can be added here if needed */}
+           {showScreenshotOverlay && (
+               <ScreenshotOverlay
+                   onCapture={handleScreenshotCapture}
+                   onCancel={handleScreenshotCancel}
+               />
+           )}
         </div>
     )
 };

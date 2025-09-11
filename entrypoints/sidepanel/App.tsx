@@ -13,6 +13,7 @@ import Base64Encoder from './Tools/Base64Encoder';
 import HashGenerator from './Tools/HashGenerator';
 import ColorConverter from './Tools/ColorConverter';
 import MarkdownPreview from './Tools/MarkdownPreview';
+import ScreenshotTool from './Tools/ScreenshotTool';
 import { ToolStateProvider, useToolState } from '@/lib/toolStateContext';
 import Sidebar, { Tool } from './Sidebar';
 import GenerateFile from './Tools/GenerateFile';
@@ -29,6 +30,7 @@ const tools: ToolWithComponent[] = [
 	{ id: 'hashgenerator', name: 'Hash Generator', icon: '🔐', keywords: ['md5', 'sha', 'hash'], component: HashGenerator },
 	{ id: 'colorconverter', name: 'Color Converter', icon: '🎨', keywords: ['hex', 'rgb', 'hsl', 'color'], component: ColorConverter },
 	{ id: 'markdownpreview', name: 'Markdown Preview', icon: '📝', keywords: ['md', 'markdown', 'preview'], component: MarkdownPreview },
+	{ id: 'screenshot', name: 'Screenshot Tool', icon: '📸', keywords: ['capture', 'image', 'screen', 'crop'], component: ScreenshotTool },
 	{ id: 'translate', name: 'Translate', icon: '🌐', keywords: ['language', 'translation'], component: () => <div>Translate Tool</div> },
 	{ id: 'ocr', name: 'OCR', icon: '📄', keywords: ['text', 'image', 'recognition'], component: () => <div>OCR Tool</div> },
 	{ id: 'grammar', name: 'Grammar', icon: '✍️', keywords: ['spelling', 'check', 'writing'], component: () => <div>Grammar Tool</div> },

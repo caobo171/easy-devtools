@@ -8,7 +8,10 @@ export enum MessageType {
     translateText = "translateText",
     analyzeText = "analyzeText",
     saveAppState = "saveAppState",
-    loadAppState = "loadAppState"
+    loadAppState = "loadAppState",
+    takeScreenshot = "TAKE_SCREENSHOT",
+    screenshotCaptured = "SCREENSHOT_CAPTURED",
+    captureVisibleTab = "CAPTURE_VISIBLE_TAB"
 }
 
 export enum MessageFrom {

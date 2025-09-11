@@ -1,12 +1,12 @@
-import {browser} from "wxt/browser";
-import ExtMessage, {MessageFrom, MessageType} from "@/entrypoints/types.ts";
+import { browser } from "wxt/browser";
+import ExtMessage, { MessageFrom, MessageType } from "@/entrypoints/types.ts";
 import { db, type AppState, type ToolState } from "@/utils/db";
 
 export default defineBackground(() => {
-    console.log('Hello background!', {id: browser.runtime.id});// background.js
+    console.log('Hello background!', { id: browser.runtime.id });// background.js
 
     // @ts-ignore
-    browser.sidePanel.setPanelBehavior({openPanelOnActionClick: true}).catch((error: any) => console.error(error));
+    browser.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch((error: any) => console.error(error));
 
     // Create context menu items - these work in devtools too
     browser.contextMenus.create({
@@ -26,7 +26,7 @@ export default defineBackground(() => {
 
     browser.contextMenus.create({
         id: "openInSidebar",
-        parentId: "devtools-parent", 
+        parentId: "devtools-parent",
         title: "📋 Open in sidebar",
         contexts: ["selection", "page"],
         documentUrlPatterns: ["*://*/*", "devtools://*/*"]
@@ -45,7 +45,7 @@ export default defineBackground(() => {
         // 发送消息给content-script.js
         console.log("click icon")
         console.log(tab)
-        browser.tabs.sendMessage(tab.id!, {messageType: MessageType.clickExtIcon});
+        browser.tabs.sendMessage(tab.id!, { messageType: MessageType.clickExtIcon });
     });
 
     // Handle context menu clicks
@@ -92,7 +92,7 @@ export default defineBackground(() => {
     // Handle keyboard shortcuts
     browser.commands.onCommand.addListener(async (command) => {
         if (command === "convert-timestamp") {
-            const tabs = await browser.tabs.query({active: true, currentWindow: true});
+            const tabs = await browser.tabs.query({ active: true, currentWindow: true });
             if (tabs[0]?.id) {
                 // Try to get selected text and convert it
                 browser.tabs.executeScript(tabs[0].id, {
@@ -118,7 +118,7 @@ export default defineBackground(() => {
             return true;
         } else if (message.messageType === MessageType.changeTheme || message.messageType === MessageType.changeLocale) {
             // Handle theme/locale changes asynchronously
-            browser.tabs.query({active: true, currentWindow: true}).then(tabs => {
+            browser.tabs.query({ active: true, currentWindow: true }).then(tabs => {
                 console.log(`tabs:${tabs.length}`)
                 if (tabs) {
                     tabs.forEach(tab => {
@@ -139,13 +139,13 @@ export default defineBackground(() => {
                 sendResponse({ success: false, error: 'Invalid JSON data' });
                 return true;
             }
-            
+
             appState.updatedAt = new Date();
-            
+
             // Use promises instead of await
             db.appState.orderBy('updatedAt').reverse().limit(1).toArray().then(existingStates => {
                 const existingState = existingStates[0];
-                
+
                 if (existingState) {
                     // Update existing state
                     db.appState.update(existingState.id!, appState).then(() => {
@@ -169,7 +169,7 @@ export default defineBackground(() => {
                 console.error('Failed to query existing states:', error);
                 sendResponse({ success: false, error: String(error) });
             });
-            
+
             return true; // Keep the message channel open for the async response
         } else if (message.messageType === MessageType.loadAppState) {
             // Load app state from IndexedDB using promises instead of await
@@ -184,8 +184,28 @@ export default defineBackground(() => {
                 console.error('Failed to load app state:', error);
                 sendResponse({ success: false, error: String(error) });
             });
-            
+
             return true; // Keep the message channel open for the async response
+        } else if (message.messageType === MessageType.captureVisibleTab) {
+
+            // This is an asynchronous operation
+            browser.tabs.captureVisibleTab(
+                { format: 'png' },
+                (imageDataUrl) => {
+                    console.log(imageDataUrl);
+                    console.log(browser.runtime.lastError);
+                    if (browser.runtime.lastError) {
+                        // If an error occurs, send it back
+                        sendResponse({ error: browser.runtime.lastError.message });
+                    } else {
+                        // Send the successful capture back to the content script
+                        sendResponse({ imageDataUrl });
+                    }
+                }
+            );
+
+            // Return true to indicate that you will send a response asynchronously
+            return true;
         }
     });
 
