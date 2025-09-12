@@ -9,12 +9,18 @@ import ExtMessage, {MessageType} from "@/entrypoints/types.ts";
 import Header from "@/entrypoints/content/header.tsx";
 import {useTranslation} from "react-i18next";
 import {useTheme} from "@/components/theme-provider.tsx";
-import {DatePopup} from "@/entrypoints/content/date-popup.tsx";
 import {convertToReadableDate, DateConversionResult} from "@/lib/dateUtils";
-import {ScreenshotOverlay} from "@/entrypoints/content/screenshot-overlay.tsx";
+import {ScreenshotOverlay} from "@/entrypoints/content/ScreenshotOverlay";
+import {DateFormatPopup} from "@/entrypoints/content/DateFormatPopup";
+import {ScreenshotPopup} from "@/entrypoints/content/ScreenshotPopup";
 
 export default () => {
     const [showScreenshotOverlay, setShowScreenshotOverlay] = useState(false);
+    const [showDateFormatPopup, setShowDateFormatPopup] = useState(false);
+    const [showScreenshotPopup, setShowScreenshotPopup] = useState(false);
+    const [dateFormatInput, setDateFormatInput] = useState('');
+    const [screenshotImageData, setScreenshotImageData] = useState('');
+    const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
     const cardRef = useRef<HTMLDivElement>(null);
     const {i18n} = useTranslation();
     const {theme, toggleTheme} = useTheme();
@@ -28,12 +34,15 @@ export default () => {
                 // Handle date conversion request
                 console.log('Converting date:', message.content);
                 
-                // Send message to sidepanel to show DateFormat tool
-                browser.runtime.sendMessage({
-                    messageType: MessageType.convertToReadableDate,
-                    content: message.content
-                });
+                // Show date format popup near the cursor or at a default position
+                const position = message.position || { 
+                    x: window.innerWidth / 2 - 150, 
+                    y: window.innerHeight / 2 - 200 
+                };
                 
+                setDateFormatInput(message.content || '');
+                setPopupPosition(position);
+                setShowDateFormatPopup(true);                
                 sendResponse({ success: true });
                 return true;
             }
@@ -55,16 +64,26 @@ export default () => {
     }, []);
 
     const handleScreenshotCapture = (imageData: string) => {
-        // Send the captured image to the sidepanel
-        browser.runtime.sendMessage({
-            messageType: MessageType.screenshotCaptured,
-            content: imageData
+        // Show the screenshot popup with the captured image
+        setScreenshotImageData(imageData);
+        setPopupPosition({ 
+            x: window.innerWidth / 2 - 200, 
+            y: window.innerHeight / 2 - 250 
         });
         setShowScreenshotOverlay(false);
+        setShowScreenshotPopup(true);
     };
 
     const handleScreenshotCancel = () => {
         setShowScreenshotOverlay(false);
+    };
+    
+    const handleDateFormatPopupClose = () => {
+        setShowDateFormatPopup(false);
+    };
+    
+    const handleScreenshotPopupClose = () => {
+        setShowScreenshotPopup(false);
     };
 
     return (
@@ -74,6 +93,22 @@ export default () => {
                <ScreenshotOverlay
                    onCapture={handleScreenshotCapture}
                    onCancel={handleScreenshotCancel}
+               />
+           )}
+           
+           {showDateFormatPopup && (
+               <DateFormatPopup
+                   initialDate={dateFormatInput}
+                   position={popupPosition}
+                   onClose={handleDateFormatPopupClose}
+               />
+           )}
+           
+           {showScreenshotPopup && (
+               <ScreenshotPopup
+                   imageData={screenshotImageData}
+                   position={popupPosition}
+                   onClose={handleScreenshotPopupClose}
                />
            )}
         </div>

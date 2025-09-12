@@ -25,6 +25,7 @@ export enum MessageFrom {
 class ExtMessage {
     content?: string;
     from?: MessageFrom;
+    position?: { x: number; y: number };
 
     constructor(messageType: MessageType) {
         this.messageType = messageType;

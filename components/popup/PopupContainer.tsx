@@ -29,7 +29,7 @@ export const PopupContainer: React.FC<PopupContainerProps> = ({
   const getPositionClasses = () => {
     if (variant === 'small') {
       // Small popups appear near the cursor
-      return `absolute transform -translate-x-1/2 -translate-y-full max-w-[320px]`;
+      return `fixed transform -translate-x-1/2 -translate-y-full max-w-[320px]`;
     } else {
       // Large popups are centered on the screen
       return `fixed left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 max-w-[90vw] max-h-[90vh] w-[600px]`;

@@ -79,9 +79,15 @@ export const ScreenshotPopup: React.FC<ScreenshotPopupProps> = ({
       // Store the image data in browser storage
       await browser.storage.local.set({ screenshotData: capturedImage });
       
-      // Open the sidebar panel
+      // Open the sidebar panel and send the screenshot data to the sidepanel
       await browser.runtime.sendMessage({
         messageType: MessageType.openInSidebar,
+      });
+      
+      // Send the captured image to the sidepanel
+      await browser.runtime.sendMessage({
+        messageType: MessageType.screenshotCaptured,
+        content: capturedImage
       });
       
       // Close the popup
