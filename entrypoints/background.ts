@@ -1,35 +1,36 @@
 import { browser } from "wxt/browser";
-import ExtMessage, { MessageFrom, MessageType } from "@/entrypoints/types.ts";
+import ExtMessage, { MessageFrom, MessageType, Tools } from "@/entrypoints/types.ts";
 import { db, type AppState, type ToolState } from "@/utils/db";
 
 export default defineBackground(() => {
     console.log('Hello background!', { id: browser.runtime.id });// background.js
 
     // @ts-ignore
-    browser.sidePanel.setPanelBehavior({ 
-        openPanelOnActionClick: true 
+    browser.sidePanel.setPanelBehavior({
+        openPanelOnActionClick: true
     }).catch((error: any) => console.error(error));
 
     // Create context menu items - these work in devtools too
     browser.contextMenus.create({
         id: "devtools-parent",
         title: "Easy devtools",
-        contexts: ["selection", "page"],
-        documentUrlPatterns: ["*://*/*", "devtools://*/*"]
-    });
-
-    browser.contextMenus.create({
-        id: "analyzeText",
-        parentId: "devtools-parent",
-        title: "🔍 Analyze text",
         contexts: ["selection", "page", "editable", "frame", "link", "image"],
         documentUrlPatterns: ["*://*/*", "devtools://*/*"]
     });
 
     browser.contextMenus.create({
-        id: "convertToReadableDate",
+        id: Tools.convertToReadableDate.id,
         parentId: "devtools-parent",
-        title: "📅 Convert to readable date",
+        title: Tools.convertToReadableDate.title,
+        contexts: ["selection", "page", "editable", "frame", "link", "image"],
+        documentUrlPatterns: ["*://*/*", "devtools://*/*"]
+    });
+
+
+    browser.contextMenus.create({
+        id: Tools.takeScreenshot.id,
+        parentId: "devtools-parent",
+        title: Tools.takeScreenshot.title,
         contexts: ["selection", "page", "editable", "frame", "link", "image"],
         documentUrlPatterns: ["*://*/*", "devtools://*/*"]
     });
@@ -37,15 +38,7 @@ export default defineBackground(() => {
     browser.contextMenus.create({
         id: "openInSidebar",
         parentId: "devtools-parent",
-        title: "📋 Open in sidebar",
-        contexts: ["selection", "page", "editable", "frame", "link", "image"],
-        documentUrlPatterns: ["*://*/*", "devtools://*/*"]
-    });
-
-    browser.contextMenus.create({
-        id: "takeScreenshot",
-        parentId: "devtools-parent",
-        title: "📸 Take screenshot",
+        title: "📋 Open tools sidebar",
         contexts: ["selection", "page", "editable", "frame", "link", "image"],
         documentUrlPatterns: ["*://*/*", "devtools://*/*"]
     });
@@ -64,46 +57,37 @@ export default defineBackground(() => {
 
         // Create message based on which menu item was clicked
         let message;
-        
+
         switch (info.menuItemId) {
-            case MessageType.convertToReadableDate:
-                message = new ExtMessage(MessageType.convertToReadableDate);
+            case Tools.convertToReadableDate.id:
+                message = new ExtMessage(MessageType.convertToReadableDateInContent);
                 message.content = info.selectionText || '';
                 message.from = MessageFrom.background;
                 break;
-                
-            case MessageType.analyzeText:
-                message = new ExtMessage(MessageType.analyzeText);
-                message.content = info.selectionText || '';
+
+            case Tools.takeScreenshot.id:
+                message = new ExtMessage(MessageType.takeScreenshot);
                 message.from = MessageFrom.background;
                 break;
-                
+
             case MessageType.openInSidebar:
                 message = new ExtMessage(MessageType.openInSidebar);
                 message.content = info.selectionText || '';
                 message.from = MessageFrom.background;
                 break;
-                
-            case MessageType.takeScreenshot:
-                message = new ExtMessage(MessageType.takeScreenshot);
-                message.from = MessageFrom.background;
-                break;
-                
+
             default:
                 console.log('Unknown menu item clicked:', info.menuItemId);
                 return;
         }
-        
+
         // Send the message to the content script
         browser.tabs.sendMessage(tab.id!, message);
     });
 
     // Use a non-async listener to ensure we can return true synchronously
     browser.runtime.onMessage.addListener((message: ExtMessage, sender, sendResponse: (message: any) => void) => {
-        if (message.messageType === MessageType.clickExtIcon) {
-            console.log(message)
-            return true;
-        } else if (message.messageType === MessageType.changeTheme || message.messageType === MessageType.changeLocale) {
+        if (message.messageType === MessageType.changeTheme || message.messageType === MessageType.changeLocale) {
             // Handle theme/locale changes asynchronously
             browser.tabs.query({ active: true, currentWindow: true }).then(tabs => {
                 console.log(`tabs:${tabs.length}`)
@@ -218,41 +202,25 @@ export default defineBackground(() => {
 
             // Return true to indicate that you will send a response asynchronously
             return true;
-        } else if (message.messageType === MessageType.convertToReadableDate) {
-            // If this is a request from the sidepanel for pending date content
-            if (message.from === MessageFrom.sidePanel && message.requestPendingContent) {
-                const pendingContent = (globalThis as any).pendingDateContent;
-                if (pendingContent) {
-                    // Clear the pending content after sending it
-                    (globalThis as any).pendingDateContent = null;
-                    sendResponse({ success: true, content: pendingContent });
-                } else {
-                    sendResponse({ success: false, error: 'No pending date content' });
+        } else if (message.messageType === MessageType.convertToReadableDateToBackground) {
+            (async () => {
+                // Otherwise, this is a request to convert a date
+                try {
+                    // First open the sidebar
+                    browser.sidePanel.open({
+                        tabId: sender.tab?.id!
+                    }).catch(error => {
+                        console.error('Error opening sidepanel:', error);
+                    });
+
+                    // Send response back to the content script
+                    sendResponse({ success: true });
+                } catch (error) {
+                    console.error('Error handling convertToReadableDate message:', error);
+                    sendResponse({ success: false, error: String(error) });
                 }
-                return true;
-            }
-            
-            // Otherwise, this is a request to convert a date
-            try {
-                // First open the sidebar
-                browser.sidePanel.open({
-                   tabId: sender.tab?.id!
-                }).then(async () => {
-                    // Store the date content in a global variable that will be accessed when the sidepanel connects
-                    (globalThis as any).pendingDateContent = message.content;
-                    
-                    // We'll rely on the sidepanel to request this data when it's ready
-                    // This avoids the "receiving end does not exist" error
-                }).catch(error => {
-                    console.error('Error opening sidepanel:', error);
-                });
-                
-                // Send response back to the content script
-                sendResponse({ success: true });
-            } catch (error) {
-                console.error('Error handling convertToReadableDate message:', error);
-                sendResponse({ success: false, error: String(error) });
-            }
+            })()
+
             return true;
         }
     });

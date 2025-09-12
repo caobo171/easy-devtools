@@ -30,7 +30,7 @@ export default () => {
         const messageListener = (message: ExtMessage, sender: any, sendResponse: (response?: any) => void) => {
             console.log('Content script received message:', message);
             
-            if (message.messageType === MessageType.convertToReadableDate) {
+            if (message.messageType === MessageType.convertToReadableDateInContent) {
                 // Handle date conversion request
                 console.log('Converting date:', message.content);
                 

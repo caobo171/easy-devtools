@@ -9,18 +9,18 @@ type ToolState = DbToolState;
 // Define the structure for the app state
 interface AppState {
   toolState: ToolState;
-  lastSelectedTool: string | null;
+  currentSelectedTool: string | null;
 }
 
 // Define the context type
 interface ToolStateContextType {
   toolState: ToolState;
-  lastSelectedTool: string | null;
+  currentSelectedTool: string | null;
   updateToolState: <T extends keyof ToolState>(
     tool: T,
     state: Partial<ToolState[T]>
   ) => void;
-  setLastSelectedTool: (toolId: string | null) => void;
+  setCurrentSelectedTool: (toolId: string | null) => void;
 }
 
 // Create the context with a default value
@@ -37,6 +37,9 @@ const defaultToolState: ToolState = {
     input: '',
     output: '',
     mode: 'encode',
+  },
+  convertToReadableDate: {
+    input: '',
   },
   // Add other tools with their default states
 };
@@ -86,7 +89,7 @@ const loadState = async (): Promise<AppState | null> => {
 // Provider component
 export const ToolStateProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [toolState, setToolState] = useState<ToolState>(defaultToolState);
-  const [lastSelectedTool, setLastSelectedTool] = useState<string | null>(null);
+  const [currentSelectedTool, setCurrentSelectedTool] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Load state from IndexedDB on component mount
@@ -96,7 +99,7 @@ export const ToolStateProvider: React.FC<{ children: ReactNode }> = ({ children 
         const savedState = await loadState();
         if (savedState) {
           setToolState(savedState.toolState);
-          setLastSelectedTool(savedState.lastSelectedTool);
+          setCurrentSelectedTool(savedState.currentSelectedTool);
         }
         setIsInitialized(true);
       } catch (error) {
@@ -113,11 +116,11 @@ export const ToolStateProvider: React.FC<{ children: ReactNode }> = ({ children 
     if (isInitialized) {
       const appState: AppState = {
         toolState,
-        lastSelectedTool
+        currentSelectedTool
       };
       saveState(appState);
     }
-  }, [toolState, lastSelectedTool, isInitialized]);
+  }, [toolState, currentSelectedTool, isInitialized]);
 
   // Function to update a specific tool's state
   const updateToolState = <T extends keyof ToolState>(
@@ -136,9 +139,9 @@ export const ToolStateProvider: React.FC<{ children: ReactNode }> = ({ children 
   return (
     <ToolStateContext.Provider value={{
       toolState,
-      lastSelectedTool,
+      currentSelectedTool,
       updateToolState,
-      setLastSelectedTool
+      setCurrentSelectedTool
     }}>
       {children}
     </ToolStateContext.Provider>

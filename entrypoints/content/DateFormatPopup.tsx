@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SmallPopup } from '@/components/popup';
 import { browser } from 'wxt/browser';
-import { MessageType } from '../types';
+import ExtMessage, { MessageFrom, MessageType } from '../types';
 import { Copy } from 'lucide-react';
 
 interface DateFormatPopupProps {
@@ -75,10 +75,10 @@ export const DateFormatPopup: React.FC<DateFormatPopupProps> = ({
   const openInSidebar = async () => {
     try {      
       // Send the date to the sidebar panel
-      await browser.runtime.sendMessage({
-        messageType: MessageType.convertToReadableDate,
-        content: inputDate
-      });
+      const message = new ExtMessage(MessageType.convertToReadableDateToBackground);
+      message.content = inputDate;
+      message.from = MessageFrom.contentScript;
+      await browser.runtime.sendMessage(message);
       
       // Close the popup
       onClose();

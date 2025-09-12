@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import './App.module.css';
 import '../../assets/main.css'
 import { browser } from "wxt/browser";
-import ExtMessage, { MessageType } from "@/entrypoints/types.ts";
+import ExtMessage, { MessageType, Tools } from "@/entrypoints/types.ts";
 import { useTheme } from "@/components/theme-provider.tsx";
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
@@ -24,32 +24,27 @@ type ToolWithComponent = Tool & {
 };
 
 const tools: ToolWithComponent[] = [
-	{ id: 'dateformat', name: 'Date Format', icon: '📅', keywords: ['time', 'calendar', 'date'], component: DateFormat },
-	{ id: 'beautifyjson', name: 'JSON Beautifier', icon: '🎨', keywords: ['format', 'json', 'pretty'], component: BeautifyJSON },
-	{ id: 'urlencoder', name: 'URL Encoder', icon: '🔗', keywords: ['encode', 'decode', 'url'], component: URLEncoder },
-	{ id: 'base64encoder', name: 'Base64 Encoder', icon: '🔐', keywords: ['encode', 'decode', 'base64'], component: Base64Encoder },
-	{ id: 'hashgenerator', name: 'Hash Generator', icon: '🔐', keywords: ['md5', 'sha', 'hash'], component: HashGenerator },
-	{ id: 'colorconverter', name: 'Color Converter', icon: '🎨', keywords: ['hex', 'rgb', 'hsl', 'color'], component: ColorConverter },
-	{ id: 'markdownpreview', name: 'Markdown Preview', icon: '📝', keywords: ['md', 'markdown', 'preview'], component: MarkdownPreview },
-	{ id: 'screenshot', name: 'Screenshot Tool', icon: '📸', keywords: ['capture', 'image', 'screen', 'crop'], component: ScreenshotTool },
-	{ id: 'videorecording', name: 'Video Recording', icon: '🎥', keywords: ['record', 'video', 'screen', 'capture'], component: VideoRecordingTool },
-	{ id: 'translate', name: 'Translate', icon: '🌐', keywords: ['language', 'translation'], component: () => <div>Translate Tool</div> },
-	{ id: 'ocr', name: 'OCR', icon: '📄', keywords: ['text', 'image', 'recognition'], component: () => <div>OCR Tool</div> },
-	{ id: 'grammar', name: 'Grammar', icon: '✍️', keywords: ['spelling', 'check', 'writing'], component: () => <div>Grammar Tool</div> },
-	{ id: 'generatefile', name: 'Generate File', icon: '📄', keywords: ['text', 'image', 'recognition'], component: GenerateFile },
+	{ id: 'convertToReadableDate', name: 'Date Format', icon: '📅', keywords: ['time', 'calendar', 'date'], component: DateFormat },
+	{ id: 'beautifyJSON', name: 'JSON Beautifier', icon: '🎨', keywords: ['format', 'json', 'pretty'], component: BeautifyJSON },
+	{ id: 'urlEncoder', name: 'URL Encoder', icon: '🔗', keywords: ['encode', 'decode', 'url'], component: URLEncoder },
+	{ id: 'base64Encoder', name: 'Base64 Encoder', icon: '🔐', keywords: ['encode', 'decode', 'base64'], component: Base64Encoder },
+	{ id: 'hashGenerator', name: 'Hash Generator', icon: '🔐', keywords: ['md5', 'sha', 'hash'], component: HashGenerator },
+	{ id: 'colorConverter', name: 'Color Converter', icon: '🎨', keywords: ['hex', 'rgb', 'hsl', 'color'], component: ColorConverter },
+	{ id: 'markdownPreview', name: 'Markdown Preview', icon: '📝', keywords: ['md', 'markdown', 'preview'], component: MarkdownPreview },
+	{ id: 'takeScreenshot', name: 'Screenshot Tool', icon: '📸', keywords: ['capture', 'image', 'screen', 'crop'], component: ScreenshotTool },
+	{ id: 'videoRecording', name: 'Video Recording', icon: '🎥', keywords: ['record', 'video', 'screen', 'capture'], component: VideoRecordingTool },
+	{ id: 'generateFile', name: 'Generate File', icon: '📄', keywords: ['text', 'image', 'recognition'], component: GenerateFile },
 ];
 
 // Main app component that will be wrapped with ToolStateProvider
 const AppContent = () => {
-	const { lastSelectedTool, setLastSelectedTool } = useToolState();
-	const [selectedTool, setSelectedTool] = useState<string | null>(lastSelectedTool);
+	const { currentSelectedTool, setCurrentSelectedTool } = useToolState();
 	const { theme, toggleTheme } = useTheme();
 	const { t, i18n } = useTranslation();
-	
+
 	// Update global state when selected tool changes
-	const handleToolSelect = (toolId: string) => {
-		setSelectedTool(toolId);
-		setLastSelectedTool(toolId);
+	const handleToolSelect = (toolId: keyof typeof Tools) => {
+		setCurrentSelectedTool(toolId);
 	};
 
 	async function initI18n() {
@@ -59,51 +54,9 @@ const AppContent = () => {
 		}
 	}
 
-	// Check for pending actions from restricted URL schemes
-	const checkPendingActions = async () => {
-		try {
-			const data = await browser.storage.local.get('pendingAction');
-			if (data.pendingAction) {
-				console.log('Found pending action:', data.pendingAction);
-				
-				// Check if the action is recent (within last 5 seconds)
-				const now = Date.now();
-				const actionTime = data.pendingAction.timestamp || 0;
-				
-				if (now - actionTime < 5000) { // 5 seconds
-					// Handle the pending action based on its type
-					switch (data.pendingAction.type) {
-						case 'dateFormat':
-							handleToolSelect('dateformat');
-							break;
-						case 'screenshot':
-							handleToolSelect('screenshot');
-							break;
-						case 'analyzeText':
-							handleToolSelect('translate');
-							break;
-						case 'openInSidebar':
-							handleToolSelect('dateformat');
-							break;
-						default:
-							console.log('Unknown pending action type:', data.pendingAction.type);
-					}
-				} else {
-					console.log('Ignoring stale pending action from', new Date(actionTime));
-				}
-				
-				// Clear the pending action
-				await browser.storage.local.remove('pendingAction');
-			}
-		} catch (error) {
-			console.error('Error checking pending actions:', error);
-		}
-	};
 
 	useEffect(() => {
-		// Check for pending actions when the component mounts
-		checkPendingActions();
-		
+
 		// Set up message listener
 		browser.runtime.onMessage.addListener((message: ExtMessage, sender, sendResponse) => {
 			console.log('sidepanel:')
@@ -112,19 +65,12 @@ const AppContent = () => {
 				i18n.changeLanguage(message.content)
 			} else if (message.messageType == MessageType.changeTheme) {
 				toggleTheme(message.content)
-			} else if (message.messageType == MessageType.convertToReadableDate) {
+			} else if (message.messageType == MessageType.convertToReadableDateInSidepanel) {
 				// Show DateFormat tool when date conversion is requested
-				handleToolSelect('dateformat');
-			} else if (message.messageType == MessageType.openInSidebar) {
-				// Handle opening content in sidebar - you can customize which tool to show
-				// For now, let's show the first tool or a default tool
-				handleToolSelect('dateformat'); // or any other appropriate tool
+				handleToolSelect('convertToReadableDate');
 			} else if (message.messageType == MessageType.takeScreenshot) {
 				// Handle take screenshot from context menu
-				handleToolSelect('screenshot');
-			} else if (message.messageType == MessageType.analyzeText) {
-				// Handle analyze text from context menu
-				handleToolSelect('translate'); // or create a dedicated analyze tool
+				handleToolSelect('takeScreenshot');
 			}
 		});
 
@@ -133,7 +79,7 @@ const AppContent = () => {
 
 
 	const renderSelectedTool = () => {
-		if (!selectedTool) {
+		if (!currentSelectedTool) {
 			return (
 				<div className="flex items-center justify-center h-full text-gray-500">
 					<div className="text-center">
@@ -144,7 +90,7 @@ const AppContent = () => {
 			);
 		}
 
-		const tool = tools.find(t => t.id === selectedTool);
+		const tool = tools.find(t => t.id === currentSelectedTool);
 		if (!tool) return null;
 
 		const ToolComponent = tool.component;
@@ -153,14 +99,14 @@ const AppContent = () => {
 
 
 	return (
-		<div className={cn(theme, 'h-full flex overflow-hidden')}>  
+		<div className={cn(theme, 'h-full flex overflow-hidden')}>
 			{/* Main workspace */}
 			<div className="flex-1 flex flex-col min-w-0">
 				{/* Header */}
 				<div className="border-b p-4">
 					<h1 className="text-xl font-semibold">DevTools Extension</h1>
 				</div>
-				
+
 				{/* Main content area */}
 				<div className="flex-1 p-4 overflow-auto">
 					<div className="w-full min-w-0">
@@ -170,9 +116,9 @@ const AppContent = () => {
 			</div>
 
 			{/* Tools sidebar */}
-			<Sidebar 
+			<Sidebar
 				tools={tools}
-				selectedTool={selectedTool}
+				selectedTool={currentSelectedTool}
 				onSelectTool={handleToolSelect}
 			/>
 		</div>

@@ -12,6 +12,10 @@ export interface ToolState {
     output: string;
     mode: 'encode' | 'decode';
   };
+  convertToReadableDate: {
+    input: string;
+  };
+  
   // Add other tools here as needed
 }
 
@@ -19,7 +23,7 @@ export interface ToolState {
 export interface AppState {
   id?: number; // Primary key, auto-incremented
   toolState: ToolState;
-  lastSelectedTool: string | null;
+  currentSelectedTool: string | null;
   updatedAt: Date;
 }
 

@@ -2,9 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button.tsx';
+import { Tools } from '../types';
 
 export type Tool = {
-	id: string;
+	id: keyof typeof Tools;
 	name: string;
 	icon: string;
 	keywords?: string[];
@@ -13,7 +14,7 @@ export type Tool = {
 interface SidebarProps {
 	tools: Tool[];
 	selectedTool: string | null;
-	onSelectTool: (toolId: string) => void;
+	onSelectTool: (toolId: keyof typeof Tools) => void;
 }
 
 export default function Sidebar({ tools, selectedTool, onSelectTool }: SidebarProps) {
