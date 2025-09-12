@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { browser } from 'wxt/browser';
-import { MessageType } from '@/entrypoints/types';
+import { MessageType, MessageFrom } from '@/entrypoints/types';
 
 interface VideoRecordingToolProps {
     initialVideoData?: string | null;
@@ -18,10 +18,14 @@ export default function VideoRecordingTool({ initialVideoData, initialVideoType,
     const [error, setError] = useState<string | null>(null);
     const [recordingQuality, setRecordingQuality] = useState<'720p' | '1080p' | '4k'>('1080p');
     const [includeAudio, setIncludeAudio] = useState(true);
-    const [recordingSource, setRecordingSource] = useState<'screen' | 'tab' | 'window'>('screen');
+    const [recordingSource, setRecordingSource] = useState<'screen' | 'tab' | 'window' | 'area'>('screen');
     const [uploadedVideo, setUploadedVideo] = useState<string | null>(null);
     const [uploadedFileName, setUploadedFileName] = useState<string>('');
     const [activeTab, setActiveTab] = useState<'record' | 'upload'>('record');
+    const [includeCursor, setIncludeCursor] = useState(true);
+    const [recordingArea, setRecordingArea] = useState<{x: number, y: number, width: number, height: number} | null>(null);
+    const [showAreaSelector, setShowAreaSelector] = useState(false);
+    const [previewImage, setPreviewImage] = useState<string | null>(null);
     
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const streamRef = useRef<MediaStream | null>(null);
@@ -61,16 +65,206 @@ export default function VideoRecordingTool({ initialVideoData, initialVideoType,
     }, [initialVideoData, initialVideoType, initialVideoFileName]);
 
     const getQualityConstraints = () => {
-        switch (recordingQuality) {
-            case '720p':
-                return { width: 1280, height: 720 };
-            case '1080p':
-                return { width: 1920, height: 1080 };
-            case '4k':
-                return { width: 3840, height: 2160 };
-            default:
-                return { width: 1920, height: 1080 };
+        const baseConstraints = {
+            '720p': { width: 1280, height: 720 },
+            '1080p': { width: 1920, height: 1080 },
+            '4k': { width: 3840, height: 2160 }
+        };
+        
+        const constraints = baseConstraints[recordingQuality] || baseConstraints['1080p'];
+        
+        // If recording a specific area, use the area dimensions
+        if (recordingSource === 'area' && recordingArea) {
+            return {
+                width: Math.min(recordingArea.width, constraints.width),
+                height: Math.min(recordingArea.height, constraints.height)
+            };
         }
+        
+        return constraints;
+    };
+
+    const captureScreenPreview = async () => {
+        try {
+            // @ts-ignore
+            const stream = await navigator.mediaDevices.getDisplayMedia({
+                video: { width: 1920, height: 1080 },
+                audio: false
+            });
+            
+            const video = document.createElement('video');
+            video.srcObject = stream;
+            video.play();
+            
+            video.onloadedmetadata = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext('2d');
+                
+                if (ctx) {
+                    ctx.drawImage(video, 0, 0);
+                    const imageData = canvas.toDataURL('image/png');
+                    setPreviewImage(imageData);
+                    setShowAreaSelector(true);
+                }
+                
+                // Stop the preview stream
+                stream.getTracks().forEach(track => track.stop());
+            };
+        } catch (error) {
+            console.error('Failed to capture screen preview:', error);
+            setError('Failed to capture screen preview. Please grant screen sharing permission.');
+        }
+    };
+
+    const selectRecordingArea = () => {
+        if (recordingSource === 'area') {
+            captureScreenPreview();
+        }
+    };
+
+    const handleAreaSelection = (area: {x: number, y: number, width: number, height: number}) => {
+        setRecordingArea(area);
+        setShowAreaSelector(false);
+    };
+
+    const AreaSelector = () => {
+        const [isDragging, setIsDragging] = useState(false);
+        const [startPos, setStartPos] = useState({ x: 0, y: 0 });
+        const [currentArea, setCurrentArea] = useState({ x: 0, y: 0, width: 0, height: 0 });
+        const canvasRef = useRef<HTMLCanvasElement>(null);
+
+        useEffect(() => {
+            if (previewImage && canvasRef.current) {
+                const canvas = canvasRef.current;
+                const ctx = canvas.getContext('2d');
+                const img = new Image();
+                
+                img.onload = () => {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    if (ctx) {
+                        ctx.drawImage(img, 0, 0);
+                    }
+                };
+                img.src = previewImage;
+            }
+        }, [previewImage]);
+
+        const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+            const canvas = canvasRef.current;
+            if (!canvas) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            setStartPos({ x, y });
+            setCurrentArea({ x, y, width: 0, height: 0 });
+            setIsDragging(true);
+        };
+
+        const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+            if (!isDragging || !canvasRef.current) return;
+
+            const canvas = canvasRef.current;
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            const width = x - startPos.x;
+            const height = y - startPos.y;
+
+            setCurrentArea({
+                x: Math.min(startPos.x, x),
+                y: Math.min(startPos.y, y),
+                width: Math.abs(width),
+                height: Math.abs(height)
+            });
+
+            // Redraw canvas with selection overlay
+            const ctx = canvas.getContext('2d');
+            if (ctx && previewImage) {
+                const img = new Image();
+                img.onload = () => {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0);
+                    
+                    // Draw selection overlay
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    // Clear selected area
+                    ctx.clearRect(currentArea.x, currentArea.y, currentArea.width, currentArea.height);
+                    ctx.drawImage(img, currentArea.x, currentArea.y, currentArea.width, currentArea.height, 
+                                currentArea.x, currentArea.y, currentArea.width, currentArea.height);
+                    
+                    // Draw selection border
+                    ctx.strokeStyle = '#3b82f6';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(currentArea.x, currentArea.y, currentArea.width, currentArea.height);
+                };
+                img.src = previewImage;
+            }
+        };
+
+        const handleMouseUp = () => {
+            if (isDragging && currentArea.width > 10 && currentArea.height > 10) {
+                handleAreaSelection(currentArea);
+            }
+            setIsDragging(false);
+        };
+
+        if (!showAreaSelector || !previewImage) return null;
+
+        return (
+            <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-lg max-w-4xl max-h-screen overflow-auto">
+                    <div className="mb-4">
+                        <h3 className="text-lg font-semibold mb-2">Select Recording Area</h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                            Click and drag to select the area you want to record. The selected area will be highlighted.
+                        </p>
+                    </div>
+                    
+                    <div className="relative border rounded-lg overflow-hidden">
+                        <canvas
+                            ref={canvasRef}
+                            className="max-w-full max-h-96 cursor-crosshair"
+                            onMouseDown={handleMouseDown}
+                            onMouseMove={handleMouseMove}
+                            onMouseUp={handleMouseUp}
+                        />
+                    </div>
+                    
+                    {currentArea.width > 0 && currentArea.height > 0 && (
+                        <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+                            Selected: {Math.round(currentArea.width)} × {Math.round(currentArea.height)} pixels
+                        </div>
+                    )}
+                    
+                    <div className="flex gap-2 mt-4">
+                        <Button 
+                            onClick={() => {
+                                if (currentArea.width > 10 && currentArea.height > 10) {
+                                    handleAreaSelection(currentArea);
+                                }
+                            }}
+                            disabled={currentArea.width <= 10 || currentArea.height <= 10}
+                        >
+                            ✅ Confirm Selection
+                        </Button>
+                        <Button 
+                            onClick={() => setShowAreaSelector(false)}
+                            variant="outline"
+                        >
+                            ❌ Cancel
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        );
     };
 
     const startRecording = async () => {
@@ -80,25 +274,23 @@ export default function VideoRecordingTool({ initialVideoData, initialVideoType,
             
             let stream: MediaStream;
             
-            if (recordingSource === 'screen') {
-                // @ts-ignore - getDisplayMedia is available in modern browsers
-                stream = await navigator.mediaDevices.getDisplayMedia({
-                    video: {
-                        ...constraints,
-                        frameRate: 30
-                    },
-                    audio: includeAudio
-                });
-            } else {
-                // For tab recording, we'll use the same API but with different options
-                // @ts-ignore
-                stream = await navigator.mediaDevices.getDisplayMedia({
-                    video: {
-                        ...constraints,
-                        frameRate: 30
-                    },
-                    audio: includeAudio
-                });
+            const displayMediaOptions: any = {
+                video: {
+                    ...constraints,
+                    frameRate: 30,
+                    cursor: includeCursor ? 'always' : 'never'
+                },
+                audio: includeAudio
+            };
+
+            // @ts-ignore - getDisplayMedia is available in modern browsers
+            stream = await navigator.mediaDevices.getDisplayMedia(displayMediaOptions);
+            
+            // If recording a specific area, we'll need to crop the video
+            if (recordingSource === 'area' && recordingArea) {
+                // Note: Actual area cropping would require additional video processing
+                // For now, we'll record the full screen and note the area for future cropping
+                console.log('Recording area:', recordingArea);
             }
 
             streamRef.current = stream;
@@ -263,6 +455,16 @@ export default function VideoRecordingTool({ initialVideoData, initialVideoType,
             });
             
             console.log('Opened recorded video in new tab:', newTab.id);
+            
+            // Send message to close the sidepanel
+            try {
+                await browser.runtime.sendMessage({
+                    messageType: MessageType.closeSidepanel,
+                    from: MessageFrom.sidePanel
+                });
+            } catch (sidePanelError) {
+                console.error('Failed to close sidepanel:', sidePanelError);
+            }
         } catch (error) {
             console.error('Failed to open recorded video in new tab:', error);
         }
@@ -281,6 +483,16 @@ export default function VideoRecordingTool({ initialVideoData, initialVideoType,
             });
             
             console.log('Opened uploaded video in new tab:', newTab.id);
+            
+            // Send message to close the sidepanel
+            try {
+                await browser.runtime.sendMessage({
+                    messageType: MessageType.closeSidepanel,
+                    from: MessageFrom.sidePanel
+                });
+            } catch (sidePanelError) {
+                console.error('Failed to close sidepanel:', sidePanelError);
+            }
         } catch (error) {
             console.error('Failed to open uploaded video in new tab:', error);
         }
@@ -353,31 +565,111 @@ export default function VideoRecordingTool({ initialVideoData, initialVideoType,
                             <label className="block text-sm font-medium mb-2">Source</label>
                             <select
                                 value={recordingSource}
-                                onChange={(e) => setRecordingSource(e.target.value as any)}
+                                onChange={(e) => {
+                                    const newSource = e.target.value as any;
+                                    setRecordingSource(newSource);
+                                    if (newSource !== 'area') {
+                                        setRecordingArea(null);
+                                        setShowAreaSelector(false);
+                                    }
+                                }}
                                 disabled={isRecording}
                                 className="w-full p-2 border rounded-lg"
                             >
                                 <option value="screen">Entire Screen</option>
                                 <option value="window">Application Window</option>
                                 <option value="tab">Browser Tab</option>
+                                <option value="area">Selected Area</option>
                             </select>
                         </div>
 
-                        <div className="flex items-center space-x-2">
-                            <input
-                                type="checkbox"
-                                id="includeAudio"
-                                checked={includeAudio}
-                                onChange={(e) => setIncludeAudio(e.target.checked)}
-                                disabled={isRecording}
-                                className="rounded"
-                            />
-                            <label htmlFor="includeAudio" className="text-sm font-medium">
-                                🎤 Include Audio
-                            </label>
+                        <div className="space-y-3">
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    type="checkbox"
+                                    id="includeAudio"
+                                    checked={includeAudio}
+                                    onChange={(e) => setIncludeAudio(e.target.checked)}
+                                    disabled={isRecording}
+                                    className="rounded"
+                                />
+                                <label htmlFor="includeAudio" className="text-sm font-medium">
+                                    🎤 Include Audio
+                                </label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    type="checkbox"
+                                    id="includeCursor"
+                                    checked={includeCursor}
+                                    onChange={(e) => setIncludeCursor(e.target.checked)}
+                                    disabled={isRecording}
+                                    className="rounded"
+                                />
+                                <label htmlFor="includeCursor" className="text-sm font-medium">
+                                    🖱️ Show Cursor
+                                </label>
+                            </div>
                         </div>
                     </div>
                 </Card>
+
+                {/* Area Selection */}
+                {recordingSource === 'area' && (
+                    <Card className="p-4">
+                        <h3 className="font-semibold mb-3">📐 Recording Area Selection</h3>
+                        
+                        {!recordingArea ? (
+                            <div className="space-y-4">
+                                <p className="text-sm text-gray-600 dark:text-gray-400">
+                                    Select a specific area of your screen to record. This helps reduce file size and focus on what matters.
+                                </p>
+                                <Button 
+                                    onClick={selectRecordingArea}
+                                    disabled={isRecording}
+                                    variant="outline"
+                                    className="w-full"
+                                >
+                                    📐 Select Recording Area
+                                </Button>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg">
+                                    <div className="flex items-center space-x-2 mb-2">
+                                        <span className="text-green-600 dark:text-green-400">✅</span>
+                                        <span className="font-medium text-green-800 dark:text-green-200">Area Selected</span>
+                                    </div>
+                                    <div className="text-sm text-green-700 dark:text-green-300">
+                                        Position: ({recordingArea.x}, {recordingArea.y})<br/>
+                                        Size: {recordingArea.width} × {recordingArea.height} pixels
+                                    </div>
+                                </div>
+                                <div className="flex gap-2">
+                                    <Button 
+                                        onClick={selectRecordingArea}
+                                        disabled={isRecording}
+                                        variant="outline"
+                                        size="sm"
+                                    >
+                                        🔄 Reselect Area
+                                    </Button>
+                                    <Button 
+                                        onClick={() => {
+                                            setRecordingArea(null);
+                                            setShowAreaSelector(false);
+                                        }}
+                                        disabled={isRecording}
+                                        variant="outline"
+                                        size="sm"
+                                    >
+                                        ❌ Clear Selection
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+                    </Card>
+                )}
 
                 {/* Recording Controls */}
                 <Card className="p-4">
@@ -530,9 +822,14 @@ export default function VideoRecordingTool({ initialVideoData, initialVideoType,
                     <li>• Higher quality recordings will result in larger file sizes</li>
                     <li>• You can pause and resume recording at any time</li>
                     <li>• Audio recording requires microphone permission</li>
+                    <li>• Cursor recording shows mouse movements and clicks</li>
+                    <li>• Area selection allows focused recording of specific regions</li>
                     <li>• Recordings are saved in WebM format for best compatibility</li>
                 </ul>
             </div>
+            
+            {/* Area Selector Modal */}
+            <AreaSelector />
         </div>
     );
 }

@@ -5,6 +5,7 @@ export enum MessageType {
     convertToReadableDate = "convertToReadableDate",
     showDatePopup = "showDatePopup",
     openInSidebar = "openInSidebar",
+    closeSidepanel = "closeSidepanel",
     translateText = "translateText",
     analyzeText = "analyzeText",
     saveAppState = "saveAppState",

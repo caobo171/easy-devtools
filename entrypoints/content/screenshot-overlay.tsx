@@ -47,6 +47,13 @@ export const ScreenshotOverlay: React.FC<ScreenshotOverlayProps> = ({ onCapture,
   }, [isSelecting, startPos]);
 
   const handleMouseUp = useCallback(async () => {
+    if (!isSelecting || selectionRect.width < 5 || selectionRect.height < 5) {
+      // Ignore tiny selections
+      return;
+    }
+    
+    setIsSelecting(false);
+    
     try {
       // 1. Send a message to the background script
       browser.runtime.sendMessage({ messageType: MessageType.captureVisibleTab }, (response) => {
@@ -73,22 +80,43 @@ export const ScreenshotOverlay: React.FC<ScreenshotOverlayProps> = ({ onCapture,
             onCancel();
             return;
           }
+          
+          // Calculate scaling factors between the screenshot image and the visible viewport
+          const devicePixelRatio = window.devicePixelRatio || 1;
+          const viewportWidth = window.innerWidth;
+          const viewportHeight = window.innerHeight;
+          const scaleX = img.width / viewportWidth;
+          const scaleY = img.height / viewportHeight;
+          
+          console.log('Debug - Image dimensions:', img.width, 'x', img.height);
+          console.log('Debug - Viewport dimensions:', viewportWidth, 'x', viewportHeight);
+          console.log('Debug - Device pixel ratio:', devicePixelRatio);
+          console.log('Debug - Scale factors:', scaleX, scaleY);
+          console.log('Debug - Selection rect:', selectionRect);
+          
+          // Adjust selection coordinates based on scaling
+          const scaledX = Math.round(selectionRect.x * scaleX);
+          const scaledY = Math.round(selectionRect.y * scaleY);
+          const scaledWidth = Math.round(selectionRect.width * scaleX);
+          const scaledHeight = Math.round(selectionRect.height * scaleY);
+          
+          console.log('Debug - Scaled selection:', scaledX, scaledY, scaledWidth, scaledHeight);
 
           // Set canvas size to selection area
-          canvas.width = selectionRect.width;
-          canvas.height = selectionRect.height;
+          canvas.width = scaledWidth;
+          canvas.height = scaledHeight;
 
           // Draw only the selected portion from the full screenshot
           ctx.drawImage(
             img,
-            selectionRect.x,
-            selectionRect.y,
-            selectionRect.width,
-            selectionRect.height,
+            scaledX,
+            scaledY,
+            scaledWidth,
+            scaledHeight,
             0,
             0,
-            selectionRect.width,
-            selectionRect.height
+            scaledWidth,
+            scaledHeight
           );
 
           // Convert to data URL and call your onCapture function

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { browser } from 'wxt/browser';
-import { MessageType } from '@/entrypoints/types';
+import { MessageType, MessageFrom } from '@/entrypoints/types';
 
 interface CropArea {
     x: number;
@@ -149,6 +149,16 @@ export default function ScreenshotTool({ initialImage }: ScreenshotToolProps) {
             });
             
             console.log('Opened screenshot editor in new tab:', newTab.id);
+            
+            // Send message to close the sidepanel
+            try {
+                await browser.runtime.sendMessage({
+                    messageType: MessageType.closeSidepanel,
+                    from: MessageFrom.sidePanel
+                });
+            } catch (sidePanelError) {
+                console.error('Failed to close sidepanel:', sidePanelError);
+            }
         } catch (error) {
             console.error('Failed to open in new tab:', error);
         }

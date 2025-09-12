@@ -150,7 +150,9 @@ export default defineBackground(() => {
                 appState = JSON.parse(message.content as string) as AppState;
                 console.log('Successfully parsed app state:', appState);
             } catch (parseError) {
-                console.log(message.content);
+                if (message.content) {
+                    console.log(message.content);
+                }
                 console.error('Failed to parse app state JSON:', parseError);
                 sendResponse({ success: false, error: 'Invalid JSON data' });
                 return true;
@@ -202,6 +204,30 @@ export default defineBackground(() => {
             });
 
             return true; // Keep the message channel open for the async response
+        } else if (message.messageType === MessageType.closeSidepanel) {
+            // Handle closing the sidepanel
+            if (sender.tab?.id) {
+                try {
+                    // We can't directly close the sidepanel, but we can collapse it
+                    // by opening an empty one or toggling it
+                    browser.tabs.query({ active: true, currentWindow: true }).then(tabs => {
+                        if (tabs[0]?.id) {
+                            // Toggle the sidepanel by opening it again (which will collapse it if already open)
+                            browser.sidePanel.open({ tabId: tabs[0].id }).then(() => {
+                                console.log('Sidepanel toggled to close');
+                                sendResponse({ success: true });
+                            }).catch(error => {
+                                console.error('Failed to toggle sidepanel:', error);
+                                sendResponse({ success: false, error: String(error) });
+                            });
+                        }
+                    });
+                } catch (error) {
+                    console.error('Error handling closeSidepanel message:', error);
+                    sendResponse({ success: false, error: String(error) });
+                }
+            }
+            return true;
         } else if (message.messageType === MessageType.captureVisibleTab) {
 
             // This is an asynchronous operation
