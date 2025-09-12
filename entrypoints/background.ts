@@ -66,25 +66,25 @@ export default defineBackground(() => {
         let message;
         
         switch (info.menuItemId) {
-            case 'convertToReadableDate':
+            case MessageType.convertToReadableDate:
                 message = new ExtMessage(MessageType.convertToReadableDate);
                 message.content = info.selectionText || '';
                 message.from = MessageFrom.background;
                 break;
                 
-            case 'analyzeText':
+            case MessageType.analyzeText:
                 message = new ExtMessage(MessageType.analyzeText);
                 message.content = info.selectionText || '';
                 message.from = MessageFrom.background;
                 break;
                 
-            case 'openInSidebar':
+            case MessageType.openInSidebar:
                 message = new ExtMessage(MessageType.openInSidebar);
                 message.content = info.selectionText || '';
                 message.from = MessageFrom.background;
                 break;
                 
-            case 'takeScreenshot':
+            case MessageType.takeScreenshot:
                 message = new ExtMessage(MessageType.takeScreenshot);
                 message.from = MessageFrom.background;
                 break;
@@ -206,8 +206,6 @@ export default defineBackground(() => {
             browser.tabs.captureVisibleTab(
                 { format: 'png' },
                 (imageDataUrl) => {
-                    console.log(imageDataUrl);
-                    console.log(browser.runtime.lastError);
                     if (browser.runtime.lastError) {
                         // If an error occurs, send it back
                         sendResponse({ error: browser.runtime.lastError.message });
@@ -219,6 +217,42 @@ export default defineBackground(() => {
             );
 
             // Return true to indicate that you will send a response asynchronously
+            return true;
+        } else if (message.messageType === MessageType.convertToReadableDate) {
+            // If this is a request from the sidepanel for pending date content
+            if (message.from === MessageFrom.sidePanel && message.requestPendingContent) {
+                const pendingContent = (globalThis as any).pendingDateContent;
+                if (pendingContent) {
+                    // Clear the pending content after sending it
+                    (globalThis as any).pendingDateContent = null;
+                    sendResponse({ success: true, content: pendingContent });
+                } else {
+                    sendResponse({ success: false, error: 'No pending date content' });
+                }
+                return true;
+            }
+            
+            // Otherwise, this is a request to convert a date
+            try {
+                // First open the sidebar
+                browser.sidePanel.open({
+                   tabId: sender.tab?.id!
+                }).then(async () => {
+                    // Store the date content in a global variable that will be accessed when the sidepanel connects
+                    (globalThis as any).pendingDateContent = message.content;
+                    
+                    // We'll rely on the sidepanel to request this data when it's ready
+                    // This avoids the "receiving end does not exist" error
+                }).catch(error => {
+                    console.error('Error opening sidepanel:', error);
+                });
+                
+                // Send response back to the content script
+                sendResponse({ success: true });
+            } catch (error) {
+                console.error('Error handling convertToReadableDate message:', error);
+                sendResponse({ success: false, error: String(error) });
+            }
             return true;
         }
     });

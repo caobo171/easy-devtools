@@ -26,6 +26,8 @@ class ExtMessage {
     content?: string;
     from?: MessageFrom;
     position?: { x: number; y: number };
+    requestPendingContent?: boolean;
+    target?: string;
 
     constructor(messageType: MessageType) {
         this.messageType = messageType;
