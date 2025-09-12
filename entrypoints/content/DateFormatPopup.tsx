@@ -73,12 +73,7 @@ export const DateFormatPopup: React.FC<DateFormatPopupProps> = ({
   };
 
   const openInSidebar = async () => {
-    try {
-      // Open the sidebar panel
-      await browser.runtime.sendMessage({
-        messageType: MessageType.openInSidebar,
-      });
-      
+    try {      
       // Send the date to the sidebar panel
       await browser.runtime.sendMessage({
         messageType: MessageType.convertToReadableDate,
