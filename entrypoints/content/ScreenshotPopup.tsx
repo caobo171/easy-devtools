@@ -1,3 +1,6 @@
+import './App.module.css';
+import '../../assets/main.css'
+
 import React, { useState, useRef, useEffect } from 'react';
 import { LargePopup } from '@/components/popup';
 import { Button } from '@/components/ui/button';

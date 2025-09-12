@@ -62,82 +62,40 @@ export default defineBackground(() => {
     browser.contextMenus.onClicked.addListener(async (info, tab) => {
         if (!tab?.id) return;
 
-        const message = new ExtMessage(MessageType.convertToReadableDate);
-        message.content = info.selectionText || '';
-        message.from = MessageFrom.background;
-
+        // Create message based on which menu item was clicked
+        let message;
+        
         switch (info.menuItemId) {
-            case "convertToReadableDate":
-                message.messageType = MessageType.convertToReadableDate;
-                // Send directly to content script without opening sidepanel
-                try {
-                    await browser.tabs.sendMessage(tab.id, message);
-                    return; // Exit early as we've already sent the message
-                } catch (error) {
-                    console.error('Failed to send convertToReadableDate message to content script:', error);
-                    // Fallback to opening sidepanel
-                    await browser.sidePanel.open({ tabId: tab.id });
-                }
+            case 'convertToReadableDate':
+                message = new ExtMessage(MessageType.convertToReadableDate);
+                message.content = info.selectionText || '';
+                message.from = MessageFrom.background;
                 break;
-            case "openInSidebar":
-                message.messageType = MessageType.openInSidebar;
-                // Open sidepanel first
-                await browser.sidePanel.open({ tabId: tab.id });
+                
+            case 'analyzeText':
+                message = new ExtMessage(MessageType.analyzeText);
+                message.content = info.selectionText || '';
+                message.from = MessageFrom.background;
                 break;
-            case "takeScreenshot":
-                message.messageType = MessageType.takeScreenshot;
-                // Send directly to content script without opening sidepanel
-                try {
-                    await browser.tabs.sendMessage(tab.id, message);
-                    return; // Exit early as we've already sent the message
-                } catch (error) {
-                    console.error('Failed to send takeScreenshot message to content script:', error);
-                    // Fallback to opening sidepanel
-                    await browser.sidePanel.open({ tabId: tab.id });
-                }
+                
+            case 'openInSidebar':
+                message = new ExtMessage(MessageType.openInSidebar);
+                message.content = info.selectionText || '';
+                message.from = MessageFrom.background;
                 break;
-            case "analyzeText":
-                message.messageType = MessageType.analyzeText;
-                // Open sidepanel first
-                await browser.sidePanel.open({ tabId: tab.id });
+                
+            case 'takeScreenshot':
+                message = new ExtMessage(MessageType.takeScreenshot);
+                message.from = MessageFrom.background;
                 break;
+                
             default:
+                console.log('Unknown menu item clicked:', info.menuItemId);
                 return;
         }
-
-        // Wait a bit for sidepanel to load, then send message
-        setTimeout(() => {
-            browser.runtime.sendMessage(message);
-        }, 500);
-
-        try {
-            await browser.tabs.sendMessage(tab.id, message);
-        } catch (error) {
-            console.log('Content script not ready, message already sent to sidepanel:', error);
-        }
-    });
-
-    // background.js
-    // Handle keyboard shortcuts
-    browser.commands.onCommand.addListener(async (command) => {
-        if (command === "convert-timestamp") {
-            const tabs = await browser.tabs.query({ active: true, currentWindow: true });
-            if (tabs[0]?.id) {
-                // Try to get selected text and convert it
-                browser.tabs.executeScript(tabs[0].id, {
-                    code: `
-                        const selectedText = window.getSelection().toString().trim();
-                        if (selectedText) {
-                            chrome.runtime.sendMessage({
-                                messageType: 'convertToReadableDate',
-                                content: selectedText,
-                                from: 'keyboard-shortcut'
-                            });
-                        }
-                    `
-                });
-            }
-        }
+        
+        // Send the message to the content script
+        browser.tabs.sendMessage(tab.id!, message);
     });
 
     // Use a non-async listener to ensure we can return true synchronously
@@ -264,6 +222,4 @@ export default defineBackground(() => {
             return true;
         }
     });
-
-
 });

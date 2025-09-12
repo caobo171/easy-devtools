@@ -1,4 +1,4 @@
-import { createShadowPopup } from '@/components/popup';
+import { createPopup } from '@/components/popup';
 import { ScreenshotPopup } from './ScreenshotPopup';
 import { ScreenshotOverlay } from './screenshot-overlay';
 import { browser } from 'wxt/browser';
@@ -30,7 +30,9 @@ export class ScreenshotHandler {
   private initMessageListener() {
     // Listen for messages to take screenshots
     browser.runtime.onMessage.addListener((message) => {
+      console.log('ScreenshotHandler received message:', message);
       if (message.messageType === MessageType.takeScreenshot) {
+        console.log('Processing takeScreenshot message');
         this.showScreenshotOverlay();
       }
     });
@@ -79,7 +81,7 @@ export class ScreenshotHandler {
     }
     
     // Create the popup
-    const { close } = createShadowPopup(
+    const { close } = createPopup(
       ScreenshotPopup,
       {
         imageData,

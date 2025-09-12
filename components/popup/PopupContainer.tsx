@@ -16,6 +16,7 @@ export interface PopupContainerProps {
 /**
  * Base container for popups that appear in the content script
  * This component handles positioning and styling for both small and large variants
+ * Now using Tailwind classes directly
  */
 export const PopupContainer: React.FC<PopupContainerProps> = ({
   children,
@@ -24,41 +25,32 @@ export const PopupContainer: React.FC<PopupContainerProps> = ({
   onClose,
   className = '',
 }) => {
-  // Calculate position based on variant
-  const getPositionStyle = () => {
+  // Generate position classes based on variant
+  const getPositionClasses = () => {
     if (variant === 'small') {
       // Small popups appear near the cursor
-      return {
-        left: `${position.x}px`,
-        top: `${position.y}px`,
-        transform: 'translate(-50%, -100%)',
-        maxWidth: '320px',
-      };
+      return `absolute transform -translate-x-1/2 -translate-y-full max-w-[320px]`;
     } else {
       // Large popups are centered on the screen
-      return {
-        left: '50%',
-        top: '50%',
-        transform: 'translate(-50%, -50%)',
-        maxWidth: '90vw',
-        maxHeight: '90vh',
-        width: '600px',
-      };
+      return `fixed left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 max-w-[90vw] max-h-[90vh] w-[600px]`;
     }
   };
 
-  // Base z-index ensures the popup appears above page content
-  // but still allows for stacking of multiple popups if needed
-  const baseZIndex = 1000000001;
+  // Combine all classes
+  const containerClasses = `
+    ${getPositionClasses()}
+    bg-background border border-border rounded-lg shadow-lg
+    ${variant === 'small' ? 'p-3' : 'p-4'}
+    ${className}
+    z-[1000000001]
+  `;
 
   return (
     <div
-      className={`fixed bg-background border border-border rounded-lg shadow-lg ${
-        variant === 'small' ? 'p-3' : 'p-4'
-      } ${className}`}
+      className={containerClasses}
       style={{
-        ...getPositionStyle(),
-        zIndex: baseZIndex,
+        left: variant === 'small' ? `${position.x}px` : undefined,
+        top: variant === 'small' ? `${position.y}px` : undefined,
       }}
     >
       {children}

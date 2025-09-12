@@ -1,4 +1,4 @@
-import { createShadowPopup } from '@/components/popup';
+import { createPopup } from '@/components/popup';
 import { DateFormatPopup } from './DateFormatPopup';
 import { browser } from 'wxt/browser';
 import { MessageType } from '../types';
@@ -27,22 +27,46 @@ export class DateFormatHandler {
   private initContextMenuListener() {
     // Listen for context menu events from the background script
     browser.runtime.onMessage.addListener((message) => {
+      console.log('DateFormatHandler received message:', message);
+      
+      // Handle both direct message objects and ExtMessage instances
       if (message.messageType === MessageType.convertToReadableDate) {
+        console.log('Processing convertToReadableDate message');
+        
+        // Get the current selection and its position
         const selection = window.getSelection();
+        let position;
+        
+        if (selection && selection.rangeCount > 0) {
+          const range = selection.getRangeAt(0);
+          const rect = range.getBoundingClientRect();
+          position = {
+            x: rect.left + (rect.width / 2) + window.scrollX,
+            y: rect.bottom + window.scrollY + 10 // Position below the selection with a small gap
+          };
+        }
+        
+        // If content is provided, use that directly
+        if (message.content) {
+          console.log('Using provided content:', message.content);
+          this.showDatePopup(message.content, position);
+          return;
+        }
+        
+        // Otherwise try to use the current selection
         if (selection && selection.toString().trim()) {
-          this.showDatePopup(selection.toString().trim());
+          console.log('Using current selection:', selection.toString().trim());
+          this.showDatePopup(selection.toString().trim(), position);
+        } else {
+          console.log('No content or selection available');
         }
       }
     });
   }
 
   private initMessageListener() {
-    // Listen for direct messages to convert dates
-    browser.runtime.onMessage.addListener((message) => {
-      if (message.messageType === MessageType.convertToReadableDate && message.content) {
-        this.showDatePopup(message.content);
-      }
-    });
+    // This is now handled in initContextMenuListener
+    // This method is kept for backward compatibility
   }
 
   private initSelectionListener() {
@@ -103,7 +127,7 @@ export class DateFormatHandler {
     };
     
     // Create the popup
-    const { close } = createShadowPopup(
+    const { close } = createPopup(
       DateFormatPopup,
       {
         initialDate: dateText,

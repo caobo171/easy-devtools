@@ -59,7 +59,52 @@ const AppContent = () => {
 		}
 	}
 
+	// Check for pending actions from restricted URL schemes
+	const checkPendingActions = async () => {
+		try {
+			const data = await browser.storage.local.get('pendingAction');
+			if (data.pendingAction) {
+				console.log('Found pending action:', data.pendingAction);
+				
+				// Check if the action is recent (within last 5 seconds)
+				const now = Date.now();
+				const actionTime = data.pendingAction.timestamp || 0;
+				
+				if (now - actionTime < 5000) { // 5 seconds
+					// Handle the pending action based on its type
+					switch (data.pendingAction.type) {
+						case 'dateFormat':
+							handleToolSelect('dateformat');
+							break;
+						case 'screenshot':
+							handleToolSelect('screenshot');
+							break;
+						case 'analyzeText':
+							handleToolSelect('translate');
+							break;
+						case 'openInSidebar':
+							handleToolSelect('dateformat');
+							break;
+						default:
+							console.log('Unknown pending action type:', data.pendingAction.type);
+					}
+				} else {
+					console.log('Ignoring stale pending action from', new Date(actionTime));
+				}
+				
+				// Clear the pending action
+				await browser.storage.local.remove('pendingAction');
+			}
+		} catch (error) {
+			console.error('Error checking pending actions:', error);
+		}
+	};
+
 	useEffect(() => {
+		// Check for pending actions when the component mounts
+		checkPendingActions();
+		
+		// Set up message listener
 		browser.runtime.onMessage.addListener((message: ExtMessage, sender, sendResponse) => {
 			console.log('sidepanel:')
 			console.log(message)

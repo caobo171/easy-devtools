@@ -8,8 +8,9 @@ import { DateFormatHandler } from './dateFormatHandler';
 import { ScreenshotHandler } from './screenshotHandler';
 
 export default defineContentScript({
-    matches: ['*://*/*'],
+    matches: ['*://*/*', 'file://*/*'],
     cssInjectionMode: 'ui',
+    runAt: 'document_idle', // Changed from document_start to document_idle
     async main(ctx) {
         initTranslations(i18nConfig.defaultLocale, ["common", "content"])
         const ui = await createShadowRootUi(ctx, {
