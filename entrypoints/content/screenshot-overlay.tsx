@@ -54,7 +54,18 @@ export const ScreenshotOverlay: React.FC<ScreenshotOverlayProps> = ({ onCapture,
     
     setIsSelecting(false);
     
+    // Store selection rect before hiding overlay
+    const selectedArea = { ...selectionRect };
+    
     try {
+      // Temporarily hide the overlay before taking screenshot
+      if (overlayRef.current) {
+        overlayRef.current.style.display = 'none';
+      }
+      
+      // Wait a tiny bit for the DOM to update
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
       // 1. Send a message to the background script
       browser.runtime.sendMessage({ messageType: MessageType.captureVisibleTab }, (response) => {
         if (response.error) {
@@ -123,19 +134,38 @@ export const ScreenshotOverlay: React.FC<ScreenshotOverlayProps> = ({ onCapture,
           const croppedImageData = canvas.toDataURL('image/png');
           onCapture(croppedImageData);
           console.log('Cropped and captured!');
+          
+          // Make sure overlay is visible again
+          if (overlayRef.current) {
+            overlayRef.current.style.display = 'block';
+          }
         };
 
         img.onerror = () => {
           console.error('Failed to load captured image');
           onCancel();
+          // Show overlay again in case of error
+          if (overlayRef.current) {
+            overlayRef.current.style.display = 'block';
+          }
         };
 
         // Set the source to the captured image received from the background script
         img.src = imageData;
+        
+        // Show overlay again after screenshot is taken
+        if (overlayRef.current) {
+          overlayRef.current.style.display = 'block';
+        }
       });
     } catch (error) {
       console.error('Error sending message to background script:', error);
       onCancel();
+      
+      // Make sure overlay is visible again in case of error
+      if (overlayRef.current) {
+        overlayRef.current.style.display = 'block';
+      }
     }
   }, [isSelecting, selectionRect, onCapture, onCancel]);
 
