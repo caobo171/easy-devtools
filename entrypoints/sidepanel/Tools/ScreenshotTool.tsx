@@ -91,9 +91,13 @@ export default function ScreenshotTool({ initialImage }: ScreenshotToolProps) {
         const canvas = canvasRef.current;
         if (!canvas) return;
 
+        // Get precise mouse coordinates relative to the canvas
         const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        // Account for any scaling between the canvas's displayed size and its actual size
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const x = (e.clientX - rect.left) * scaleX;
+        const y = (e.clientY - rect.top) * scaleY;
 
         setDragStart({ x, y });
         
@@ -259,40 +263,61 @@ export default function ScreenshotTool({ initialImage }: ScreenshotToolProps) {
         const canvas = canvasRef.current;
         if (!canvas) return;
 
+        // Get precise mouse coordinates relative to the canvas
         const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        // Account for any scaling between the canvas's displayed size and its actual size
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const x = (e.clientX - rect.left) * scaleX;
+        const y = (e.clientY - rect.top) * scaleY;
         
         // Calculate the movement delta
         const deltaX = x - dragStart.x;
         const deltaY = y - dragStart.y;
 
         if (isMovingAnnotation && selectedAnnotationId) {
-            // Move the selected annotation
-            setAnnotations(annotations.map(annotation => {
-                if (annotation.id === selectedAnnotationId) {
-                    const updatedAnnotation = { ...annotation };
-                    
-                    // Update position based on annotation type
-                    if (annotation.type === 'arrow') {
-                        // For arrows, move both start and end points
-                        if (updatedAnnotation.endX !== undefined && updatedAnnotation.endY !== undefined && 
-                            annotation.endX !== undefined && annotation.endY !== undefined) {
-                            updatedAnnotation.x = annotation.x + deltaX;
-                            updatedAnnotation.y = annotation.y + deltaY;
-                            updatedAnnotation.endX = annotation.endX + deltaX;
-                            updatedAnnotation.endY = annotation.endY + deltaY;
+            // Find the selected annotation
+            const selectedAnnotation = annotations.find(a => a.id === selectedAnnotationId);
+            
+            if (selectedAnnotation) {
+                // Create a new annotations array with the updated position
+                const updatedAnnotations = annotations.map(annotation => {
+                    if (annotation.id === selectedAnnotationId) {
+                        const updatedAnnotation = { ...annotation };
+                        
+                        // Update position based on annotation type
+                        if (annotation.type === 'arrow') {
+                            // For arrows, move both start and end points
+                            if (updatedAnnotation.endX !== undefined && updatedAnnotation.endY !== undefined && 
+                                annotation.endX !== undefined && annotation.endY !== undefined) {
+                                // Apply exact position rather than incremental delta to avoid drift
+                                const originalOffsetX = annotation.x - dragStart.x;
+                                const originalOffsetY = annotation.y - dragStart.y;
+                                const endOffsetX = annotation.endX - dragStart.x;
+                                const endOffsetY = annotation.endY - dragStart.y;
+                                
+                                updatedAnnotation.x = x + originalOffsetX;
+                                updatedAnnotation.y = y + originalOffsetY;
+                                updatedAnnotation.endX = x + endOffsetX;
+                                updatedAnnotation.endY = y + endOffsetY;
+                            }
+                        } else {
+                            // For all other types, just move the x,y position
+                            // Apply exact position rather than incremental delta to avoid drift
+                            const originalOffsetX = annotation.x - dragStart.x;
+                            const originalOffsetY = annotation.y - dragStart.y;
+                            
+                            updatedAnnotation.x = x + originalOffsetX;
+                            updatedAnnotation.y = y + originalOffsetY;
                         }
-                    } else {
-                        // For all other types, just move the x,y position
-                        updatedAnnotation.x = annotation.x + deltaX;
-                        updatedAnnotation.y = annotation.y + deltaY;
+                        
+                        return updatedAnnotation;
                     }
-                    
-                    return updatedAnnotation;
-                }
-                return annotation;
-            }));
+                    return annotation;
+                });
+                
+                setAnnotations(updatedAnnotations);
+            }
             
             // Update drag start for the next move event
             setDragStart({ x, y });
@@ -641,8 +666,8 @@ export default function ScreenshotTool({ initialImage }: ScreenshotToolProps) {
     
     // Helper function to check if a point is inside an annotation
     const isPointInAnnotation = (x: number, y: number, annotation: Annotation): boolean => {
-        // Increase hit area for all annotations
-        const hitPadding = 10; // pixels of padding around elements for easier selection
+        // Use a smaller hit area for more precise selection
+        const hitPadding = 5; // pixels of padding around elements for selection
         
         switch (annotation.type) {
             case 'text':
