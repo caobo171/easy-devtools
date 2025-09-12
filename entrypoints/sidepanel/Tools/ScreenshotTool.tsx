@@ -23,9 +23,10 @@ interface Annotation {
     text?: string;
     color: string;
     fontSize?: number;
+    selected?: boolean;
 }
 
-type EditMode = 'crop' | 'text' | 'arrow' | 'rectangle' | 'circle' | 'blur' | null;
+type EditMode = 'crop' | 'text' | 'arrow' | 'rectangle' | 'circle' | 'blur' | 'select' | null;
 
 interface ScreenshotToolProps {
     initialImage?: string | null;
@@ -45,6 +46,8 @@ export default function ScreenshotTool({ initialImage }: ScreenshotToolProps) {
     const [textInput, setTextInput] = useState('');
     const [showTextInput, setShowTextInput] = useState(false);
     const [textPosition, setTextPosition] = useState({ x: 0, y: 0 });
+    const [selectedAnnotationId, setSelectedAnnotationId] = useState<string | null>(null);
+    const [isMovingAnnotation, setIsMovingAnnotation] = useState(false);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const imageRef = useRef<HTMLImageElement>(null);
 
@@ -93,26 +96,112 @@ export default function ScreenshotTool({ initialImage }: ScreenshotToolProps) {
         const y = e.clientY - rect.top;
 
         setDragStart({ x, y });
-        setIsDragging(true);
-
-        if (editMode === 'crop') {
-            setCropArea({ x, y, width: 0, height: 0 });
-        } else if (editMode === 'text') {
-            setTextPosition({ x, y });
-            setShowTextInput(true);
-        } else if (editMode && ['arrow', 'rectangle', 'circle', 'blur'].includes(editMode)) {
-            const newAnnotation: Annotation = {
-                id: Date.now().toString(),
-                type: editMode as 'arrow' | 'rectangle' | 'circle' | 'blur',
-                x,
-                y,
-                color: selectedColor,
-                endX: x,
-                endY: y,
-                width: 0,
-                height: 0
-            };
-            setCurrentAnnotation(newAnnotation);
+        
+        // Handle selection mode or check if we're clicking on an existing annotation
+        if (editMode === 'select' || !editMode) {
+            // Check if we clicked on an annotation
+            let foundAnnotation = false;
+            let clickedAnnotations = [];
+            
+            // First, find all annotations that are under the click point
+            for (let i = 0; i < annotations.length; i++) {
+                const annotation = annotations[i];
+                if (isPointInAnnotation(x, y, annotation)) {
+                    clickedAnnotations.push(annotation);
+                }
+            }
+            
+            // If we found annotations under the click
+            if (clickedAnnotations.length > 0) {
+                foundAnnotation = true;
+                
+                // If the currently selected annotation is in the clicked set, find the next one in cycle
+                if (selectedAnnotationId) {
+                    const currentIndex = clickedAnnotations.findIndex(a => a.id === selectedAnnotationId);
+                    
+                    if (currentIndex !== -1) {
+                        // Select the next annotation in the cycle
+                        const nextIndex = (currentIndex + 1) % clickedAnnotations.length;
+                        const nextAnnotation = clickedAnnotations[nextIndex];
+                        
+                        setSelectedAnnotationId(nextAnnotation.id);
+                        setIsMovingAnnotation(true);
+                        setIsDragging(true);
+                        
+                        // Update annotations to mark this one as selected
+                        setAnnotations(annotations.map(a => ({
+                            ...a,
+                            selected: a.id === nextAnnotation.id
+                        })));
+                    } else {
+                        // Current selection not in clicked set, select the first clicked one
+                        const firstAnnotation = clickedAnnotations[0];
+                        
+                        setSelectedAnnotationId(firstAnnotation.id);
+                        setIsMovingAnnotation(true);
+                        setIsDragging(true);
+                        
+                        // Update annotations to mark this one as selected
+                        setAnnotations(annotations.map(a => ({
+                            ...a,
+                            selected: a.id === firstAnnotation.id
+                        })));
+                    }
+                } else {
+                    // No current selection, select the first clicked one
+                    const firstAnnotation = clickedAnnotations[0];
+                    
+                    setSelectedAnnotationId(firstAnnotation.id);
+                    setIsMovingAnnotation(true);
+                    setIsDragging(true);
+                    
+                    // Update annotations to mark this one as selected
+                    setAnnotations(annotations.map(a => ({
+                        ...a,
+                        selected: a.id === firstAnnotation.id
+                    })));
+                }
+            }
+            
+            // If we didn't click on any annotation, deselect
+            if (!foundAnnotation) {
+                setSelectedAnnotationId(null);
+                setIsMovingAnnotation(false);
+                setAnnotations(annotations.map(a => ({
+                    ...a,
+                    selected: false
+                })));
+                setIsDragging(false);
+            }
+        } else {
+            setIsDragging(true);
+            
+            // Clear any selected annotation when starting a new drawing
+            setSelectedAnnotationId(null);
+            setAnnotations(annotations.map(a => ({
+                ...a,
+                selected: false
+            })));
+            
+            if (editMode === 'crop') {
+                setCropArea({ x, y, width: 0, height: 0 });
+            } else if (editMode === 'text') {
+                setTextPosition({ x, y });
+                setShowTextInput(true);
+            } else if (editMode && ['arrow', 'rectangle', 'circle', 'blur'].includes(editMode)) {
+                const newAnnotation: Annotation = {
+                    id: Date.now().toString(),
+                    type: editMode as 'arrow' | 'rectangle' | 'circle' | 'blur',
+                    x,
+                    y,
+                    color: selectedColor,
+                    endX: x,
+                    endY: y,
+                    width: 0,
+                    height: 0
+                };
+                setCurrentAnnotation(newAnnotation);
+            }
         }
     };
 
@@ -173,8 +262,41 @@ export default function ScreenshotTool({ initialImage }: ScreenshotToolProps) {
         const rect = canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
+        
+        // Calculate the movement delta
+        const deltaX = x - dragStart.x;
+        const deltaY = y - dragStart.y;
 
-        if (editMode === 'crop') {
+        if (isMovingAnnotation && selectedAnnotationId) {
+            // Move the selected annotation
+            setAnnotations(annotations.map(annotation => {
+                if (annotation.id === selectedAnnotationId) {
+                    const updatedAnnotation = { ...annotation };
+                    
+                    // Update position based on annotation type
+                    if (annotation.type === 'arrow') {
+                        // For arrows, move both start and end points
+                        if (updatedAnnotation.endX !== undefined && updatedAnnotation.endY !== undefined && 
+                            annotation.endX !== undefined && annotation.endY !== undefined) {
+                            updatedAnnotation.x = annotation.x + deltaX;
+                            updatedAnnotation.y = annotation.y + deltaY;
+                            updatedAnnotation.endX = annotation.endX + deltaX;
+                            updatedAnnotation.endY = annotation.endY + deltaY;
+                        }
+                    } else {
+                        // For all other types, just move the x,y position
+                        updatedAnnotation.x = annotation.x + deltaX;
+                        updatedAnnotation.y = annotation.y + deltaY;
+                    }
+                    
+                    return updatedAnnotation;
+                }
+                return annotation;
+            }));
+            
+            // Update drag start for the next move event
+            setDragStart({ x, y });
+        } else if (editMode === 'crop') {
             const width = x - dragStart.x;
             const height = y - dragStart.y;
 
@@ -203,6 +325,7 @@ export default function ScreenshotTool({ initialImage }: ScreenshotToolProps) {
 
     const handleCanvasMouseUp = () => {
         setIsDragging(false);
+        setIsMovingAnnotation(false);
         
         if (currentAnnotation && editMode !== 'crop') {
             setAnnotations(prev => [...prev, currentAnnotation]);
@@ -211,14 +334,33 @@ export default function ScreenshotTool({ initialImage }: ScreenshotToolProps) {
     };
 
     const drawAnnotation = (ctx: CanvasRenderingContext2D, annotation: Annotation) => {
+        // Set styles based on whether the annotation is selected
         ctx.strokeStyle = annotation.color;
         ctx.fillStyle = annotation.color;
-        ctx.lineWidth = 2;
+        ctx.lineWidth = annotation.selected ? 3 : 2;
 
         switch (annotation.type) {
             case 'text':
                 ctx.font = `${annotation.fontSize || fontSize}px Arial`;
                 ctx.fillText(annotation.text || '', annotation.x, annotation.y);
+                
+                // Draw selection indicator for text
+                if (annotation.selected) {
+                    const textWidth = (annotation.text || '').length * (annotation.fontSize || fontSize) * 0.6;
+                    const textHeight = (annotation.fontSize || fontSize);
+                    
+                    // Draw dashed rectangle around text
+                    ctx.save();
+                    ctx.strokeStyle = '#3b82f6'; // Blue selection color
+                    ctx.setLineDash([5, 3]);
+                    ctx.strokeRect(
+                        annotation.x - 5, 
+                        annotation.y - textHeight, 
+                        textWidth + 10, 
+                        textHeight + 5
+                    );
+                    ctx.restore();
+                }
                 break;
             
             case 'arrow':
@@ -244,11 +386,50 @@ export default function ScreenshotTool({ initialImage }: ScreenshotToolProps) {
                         annotation.endY - headLength * Math.sin(angle + Math.PI / 6)
                     );
                     ctx.stroke();
+                    
+                    // Draw selection indicators for arrow
+                    if (annotation.selected) {
+                        ctx.save();
+                        ctx.fillStyle = '#3b82f6'; // Blue selection color
+                        
+                        // Draw control points at start and end
+                        ctx.beginPath();
+                        ctx.arc(annotation.x, annotation.y, 5, 0, 2 * Math.PI);
+                        ctx.fill();
+                        
+                        ctx.beginPath();
+                        ctx.arc(annotation.endX, annotation.endY, 5, 0, 2 * Math.PI);
+                        ctx.fill();
+                        
+                        ctx.restore();
+                    }
                 }
                 break;
             
             case 'rectangle':
                 ctx.strokeRect(annotation.x, annotation.y, annotation.width || 0, annotation.height || 0);
+                
+                // Draw selection indicators for rectangle
+                if (annotation.selected && annotation.width !== undefined && annotation.height !== undefined) {
+                    ctx.save();
+                    ctx.fillStyle = '#3b82f6'; // Blue selection color
+                    
+                    // Draw control points at corners
+                    const controlPoints = [
+                        { x: annotation.x, y: annotation.y }, // Top-left
+                        { x: annotation.x + annotation.width, y: annotation.y }, // Top-right
+                        { x: annotation.x, y: annotation.y + annotation.height }, // Bottom-left
+                        { x: annotation.x + annotation.width, y: annotation.y + annotation.height } // Bottom-right
+                    ];
+                    
+                    controlPoints.forEach(point => {
+                        ctx.beginPath();
+                        ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
+                        ctx.fill();
+                    });
+                    
+                    ctx.restore();
+                }
                 break;
             
             case 'circle':
@@ -259,6 +440,28 @@ export default function ScreenshotTool({ initialImage }: ScreenshotToolProps) {
                     ctx.beginPath();
                     ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
                     ctx.stroke();
+                    
+                    // Draw selection indicators for circle
+                    if (annotation.selected) {
+                        ctx.save();
+                        ctx.fillStyle = '#3b82f6'; // Blue selection color
+                        
+                        // Draw control points at cardinal points
+                        const controlPoints = [
+                            { x: annotation.x, y: centerY }, // Left
+                            { x: annotation.x + annotation.width, y: centerY }, // Right
+                            { x: centerX, y: annotation.y }, // Top
+                            { x: centerX, y: annotation.y + annotation.height } // Bottom
+                        ];
+                        
+                        controlPoints.forEach(point => {
+                            ctx.beginPath();
+                            ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
+                            ctx.fill();
+                        });
+                        
+                        ctx.restore();
+                    }
                 }
                 break;
             
@@ -288,6 +491,31 @@ export default function ScreenshotTool({ initialImage }: ScreenshotToolProps) {
                     }
                     
                     ctx.putImageData(imageData, annotation.x, annotation.y);
+                    
+                    // Draw selection indicators for blur
+                    if (annotation.selected) {
+                        ctx.save();
+                        ctx.strokeStyle = '#3b82f6'; // Blue selection color
+                        ctx.setLineDash([5, 3]);
+                        ctx.strokeRect(annotation.x, annotation.y, annotation.width, annotation.height);
+                        
+                        // Draw control points at corners
+                        ctx.fillStyle = '#3b82f6';
+                        const controlPoints = [
+                            { x: annotation.x, y: annotation.y }, // Top-left
+                            { x: annotation.x + annotation.width, y: annotation.y }, // Top-right
+                            { x: annotation.x, y: annotation.y + annotation.height }, // Bottom-left
+                            { x: annotation.x + annotation.width, y: annotation.y + annotation.height } // Bottom-right
+                        ];
+                        
+                        controlPoints.forEach(point => {
+                            ctx.beginPath();
+                            ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
+                            ctx.fill();
+                        });
+                        
+                        ctx.restore();
+                    }
                 }
                 break;
         }
@@ -408,6 +636,92 @@ export default function ScreenshotTool({ initialImage }: ScreenshotToolProps) {
         setCropArea(null);
         setAnnotations([]);
         setEditMode(null);
+        setSelectedAnnotationId(null);
+    };
+    
+    // Helper function to check if a point is inside an annotation
+    const isPointInAnnotation = (x: number, y: number, annotation: Annotation): boolean => {
+        // Increase hit area for all annotations
+        const hitPadding = 10; // pixels of padding around elements for easier selection
+        
+        switch (annotation.type) {
+            case 'text':
+                // For text, create a virtual box around it with padding
+                const textWidth = annotation.text ? annotation.text.length * (annotation.fontSize || fontSize) * 0.6 : 0;
+                const textHeight = (annotation.fontSize || fontSize);
+                return x >= annotation.x - hitPadding && 
+                       x <= annotation.x + textWidth + hitPadding && 
+                       y >= annotation.y - textHeight - hitPadding && 
+                       y <= annotation.y + hitPadding;
+            
+            case 'arrow':
+                // For arrow, check if point is near the line with increased hit area
+                if (annotation.endX === undefined || annotation.endY === undefined) return false;
+                
+                // Calculate distance from point to line
+                const lineLength = Math.sqrt(
+                    Math.pow(annotation.endX - annotation.x, 2) + 
+                    Math.pow(annotation.endY - annotation.y, 2)
+                );
+                
+                if (lineLength === 0) return false;
+                
+                const distance = Math.abs(
+                    (annotation.endY - annotation.y) * x - 
+                    (annotation.endX - annotation.x) * y + 
+                    annotation.endX * annotation.y - 
+                    annotation.endY * annotation.x
+                ) / lineLength;
+                
+                // Check if point is within hitPadding of the line and between the endpoints (with padding)
+                return distance < hitPadding && 
+                       x >= Math.min(annotation.x, annotation.endX) - hitPadding && 
+                       x <= Math.max(annotation.x, annotation.endX) + hitPadding && 
+                       y >= Math.min(annotation.y, annotation.endY) - hitPadding && 
+                       y <= Math.max(annotation.y, annotation.endY) + hitPadding;
+            
+            case 'rectangle':
+            case 'blur':
+                // For rectangle and blur, check if point is inside or near the border
+                if (annotation.width === undefined || annotation.height === undefined) return false;
+                
+                // Check if point is inside the rectangle (including padding)
+                const insideRect = 
+                    x >= annotation.x - hitPadding && 
+                    x <= annotation.x + annotation.width + hitPadding && 
+                    y >= annotation.y - hitPadding && 
+                    y <= annotation.y + annotation.height + hitPadding;
+                    
+                // For very small rectangles, increase hit area further
+                if (annotation.width < 20 || annotation.height < 20) {
+                    const extraPadding = 15;
+                    return x >= annotation.x - extraPadding && 
+                           x <= annotation.x + annotation.width + extraPadding && 
+                           y >= annotation.y - extraPadding && 
+                           y <= annotation.y + annotation.height + extraPadding;
+                }
+                
+                return insideRect;
+            
+            case 'circle':
+                // For circle, check if point is inside with padding
+                if (annotation.width === undefined || annotation.height === undefined) return false;
+                
+                const centerX = annotation.x + annotation.width / 2;
+                const centerY = annotation.y + annotation.height / 2;
+                const radius = Math.min(annotation.width, annotation.height) / 2;
+                
+                const distance2 = Math.sqrt(
+                    Math.pow(x - centerX, 2) + 
+                    Math.pow(y - centerY, 2)
+                );
+                
+                // Add padding to the radius for easier selection
+                return distance2 <= radius + hitPadding;
+            
+            default:
+                return false;
+        }
     };
 
     const undoLastAnnotation = () => {
@@ -477,6 +791,13 @@ export default function ScreenshotTool({ initialImage }: ScreenshotToolProps) {
                         
                         {/* Tool Selection */}
                         <div className="flex gap-2 flex-wrap">
+                            <Button
+                                onClick={() => setEditMode('select')}
+                                variant={editMode === 'select' ? 'default' : 'outline'}
+                                size="sm"
+                            >
+                                ✋ Select & Move
+                            </Button>
                             <Button
                                 onClick={() => setEditMode('crop')}
                                 variant={editMode === 'crop' ? 'default' : 'outline'}
@@ -577,6 +898,7 @@ export default function ScreenshotTool({ initialImage }: ScreenshotToolProps) {
                         {/* Current Mode Info */}
                         {editMode && (
                             <div className="text-sm text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 p-2 rounded">
+                                {editMode === 'select' && '✋ Click on an annotation to select it, then drag to move it'}
                                 {editMode === 'crop' && '✂️ Click and drag to select crop area'}
                                 {editMode === 'text' && '📝 Click where you want to add text'}
                                 {editMode === 'arrow' && '➡️ Click and drag to draw an arrow'}
@@ -710,6 +1032,7 @@ export default function ScreenshotTool({ initialImage }: ScreenshotToolProps) {
                         <div>
                             <p><strong>Editing & Saving:</strong></p>
                             <ul className="list-disc list-inside space-y-1 mt-1">
+                                <li>Use "Select & Move" to reposition annotations</li>
                                 <li>Drag on image to select crop area</li>
                                 <li>Click "Apply Crop" to crop the image</li>
                                 <li>Use "Copy" or "Download" to save</li>
