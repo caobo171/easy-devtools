@@ -69,8 +69,15 @@ export default defineBackground(() => {
         switch (info.menuItemId) {
             case "convertToReadableDate":
                 message.messageType = MessageType.convertToReadableDate;
-                // Open sidepanel first
-                await browser.sidePanel.open({ tabId: tab.id });
+                // Send directly to content script without opening sidepanel
+                try {
+                    await browser.tabs.sendMessage(tab.id, message);
+                    return; // Exit early as we've already sent the message
+                } catch (error) {
+                    console.error('Failed to send convertToReadableDate message to content script:', error);
+                    // Fallback to opening sidepanel
+                    await browser.sidePanel.open({ tabId: tab.id });
+                }
                 break;
             case "openInSidebar":
                 message.messageType = MessageType.openInSidebar;
@@ -79,8 +86,15 @@ export default defineBackground(() => {
                 break;
             case "takeScreenshot":
                 message.messageType = MessageType.takeScreenshot;
-                // Open sidepanel first
-                await browser.sidePanel.open({ tabId: tab.id });
+                // Send directly to content script without opening sidepanel
+                try {
+                    await browser.tabs.sendMessage(tab.id, message);
+                    return; // Exit early as we've already sent the message
+                } catch (error) {
+                    console.error('Failed to send takeScreenshot message to content script:', error);
+                    // Fallback to opening sidepanel
+                    await browser.sidePanel.open({ tabId: tab.id });
+                }
                 break;
             case "analyzeText":
                 message.messageType = MessageType.analyzeText;

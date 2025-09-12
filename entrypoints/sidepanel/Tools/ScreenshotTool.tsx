@@ -78,6 +78,16 @@ export default function ScreenshotTool({ initialImage }: ScreenshotToolProps) {
                 await browser.tabs.sendMessage(tabs[0].id, {
                     messageType: MessageType.takeScreenshot
                 });
+                
+                // Close the sidepanel after initiating the screenshot
+                try {
+                    await browser.runtime.sendMessage({
+                        messageType: MessageType.closeSidepanel,
+                        from: MessageFrom.sidePanel
+                    });
+                } catch (sidePanelError) {
+                    console.error('Failed to close sidepanel:', sidePanelError);
+                }
             }
         } catch (error) {
             console.error('Failed to initiate screenshot:', error);

@@ -4,6 +4,8 @@ import App from './App.tsx';
 import {i18nConfig} from "@/components/i18nConfig.ts";
 import initTranslations from "@/components/i18n.ts";
 import {ThemeProvider} from "@/components/theme-provider.tsx";
+import { DateFormatHandler } from './dateFormatHandler';
+import { ScreenshotHandler } from './screenshotHandler';
 
 export default defineContentScript({
     matches: ['*://*/*'],
@@ -34,5 +36,9 @@ export default defineContentScript({
         });
 
         ui.mount();
+        
+        // Initialize the handlers
+        DateFormatHandler.getInstance();
+        ScreenshotHandler.getInstance();
     },
 });
