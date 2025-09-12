@@ -236,9 +236,9 @@ export default function ScreenshotTool({ initialImage }: ScreenshotToolProps) {
             // Store the image data in browser storage
             await browser.storage.local.set({ screenshotData: capturedImage });
             
-            // Open the new tab with a direct URL
+            // Open the new tab with the media viewer URL
             const newTab = await browser.tabs.create({
-                url: '/newtab.html'
+                url: '/media-viewer.html?type=screenshot'
             });
             
             console.log('Opened screenshot editor in new tab:', newTab.id);

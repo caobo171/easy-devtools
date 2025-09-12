@@ -21,7 +21,7 @@ export default defineConfig({
         name: '__MSG_extName__',
         description: '__MSG_extDescription__',
         default_locale: "en",
-        devtools_page: "entrypoints/devtools.html",
+        // devtools_page: "entrypoints/devtools.html",
         commands: {
             "convert-timestamp": {
                 "suggested_key": {
@@ -31,9 +31,7 @@ export default defineConfig({
                 "description": "Convert selected timestamp to readable date"
             }
         },
-        chrome_url_overrides: {
-            newtab: "entrypoints/newtab.html"
-        }
+        // Removed newtab override to prevent conflicts with custom media viewer
     },
     vite: () => ({
         plugins: [react()],

@@ -449,9 +449,9 @@ export default function VideoRecordingTool({ initialVideoData, initialVideoType,
             // Store the video data in browser storage
             await browser.storage.local.set({ videoData: recordedVideo, videoType: 'recorded' });
             
-            // Open the new tab
+            // Open the new tab with the media viewer URL
             const newTab = await browser.tabs.create({
-                url: '/newtab.html'
+                url: '/media-viewer.html?type=video'
             });
             
             console.log('Opened recorded video in new tab:', newTab.id);
