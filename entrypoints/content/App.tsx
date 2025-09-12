@@ -5,7 +5,7 @@ import {Home} from "@/entrypoints/content/home.tsx";
 import {SettingsPage} from "@/entrypoints/content/settings.tsx";
 import Sidebar, {SidebarType} from "@/entrypoints/sidebar.tsx";
 import {browser} from "wxt/browser";
-import ExtMessage, {MessageType} from "@/entrypoints/types.ts";
+import ExtMessage, {MessageFrom, MessageType, Tools} from "@/entrypoints/types.ts";
 import Header from "@/entrypoints/content/header.tsx";
 import {useTranslation} from "react-i18next";
 import {useTheme} from "@/components/theme-provider.tsx";
@@ -13,6 +13,7 @@ import {convertToReadableDate, DateConversionResult} from "@/lib/dateUtils";
 import {ScreenshotOverlay} from "@/entrypoints/content/ScreenshotOverlay";
 import {DateFormatPopup} from "@/entrypoints/content/DateFormatPopup";
 import {ScreenshotPopup} from "@/entrypoints/content/ScreenshotPopup";
+import { ToolState } from "@/utils/db";
 
 export default () => {
     const [showScreenshotOverlay, setShowScreenshotOverlay] = useState(false);
@@ -24,6 +25,26 @@ export default () => {
     const cardRef = useRef<HTMLDivElement>(null);
     const {i18n} = useTranslation();
     const {theme, toggleTheme} = useTheme();
+    
+    // Function to save partial state when a tool is selected
+    const savePartialState = (toolId: string, toolState: any) => {
+        // Create a partial app state with just the selected tool and its state
+        const partialState = {
+            currentSelectedTool: toolId,
+            toolState: {
+                [toolId]: toolState
+            }
+        };
+        
+        // Send the partial state to the background script
+        const message = new ExtMessage(MessageType.savePartialAppState);
+        message.content = JSON.stringify(partialState);
+        message.from = MessageFrom.contentScript;
+        
+        browser.runtime.sendMessage(message).catch(error => {
+            console.error('Failed to save partial state:', error);
+        });
+    };
     
     useEffect(() => {
         // Listen for messages from background script
@@ -42,7 +63,11 @@ export default () => {
                 
                 setDateFormatInput(message.content || '');
                 setPopupPosition(position);
-                setShowDateFormatPopup(true);                
+                setShowDateFormatPopup(true);
+                
+                // Save partial state for the date format tool
+                savePartialState('convertToReadableDate', { input: message.content || '' });
+                
                 sendResponse({ success: true });
                 return true;
             }
@@ -72,6 +97,9 @@ export default () => {
         });
         setShowScreenshotOverlay(false);
         setShowScreenshotPopup(true);
+        
+        // Save partial state for the screenshot tool
+        savePartialState('takeScreenshot', { imageData });
     };
 
     const handleScreenshotCancel = () => {

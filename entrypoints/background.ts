@@ -98,18 +98,20 @@ export default defineBackground(() => {
                 }
             });
             return true;
-        } else if (message.messageType === MessageType.saveAppState) {
+        } else if (message.messageType === MessageType.saveAppState || message.messageType === MessageType.savePartialAppState) {
             // Save app state to IndexedDB
             // Parse the JSON string from message.content
             let appState: AppState;
+            let isPartialUpdate = message.messageType === MessageType.savePartialAppState;
+            
             try {
                 appState = JSON.parse(message.content as string) as AppState;
-                console.log('Successfully parsed app state:', appState);
+                console.log(`Successfully parsed ${isPartialUpdate ? 'partial' : 'full'} app state:`, appState);
             } catch (parseError) {
                 if (message.content) {
                     console.log(message.content);
                 }
-                console.error('Failed to parse app state JSON:', parseError);
+                console.error(`Failed to parse ${isPartialUpdate ? 'partial' : 'full'} app state JSON:`, parseError);
                 sendResponse({ success: false, error: 'Invalid JSON data' });
                 return true;
             }
@@ -119,16 +121,43 @@ export default defineBackground(() => {
             // Use promises instead of await
             db.appState.orderBy('updatedAt').reverse().limit(1).toArray().then(existingStates => {
                 const existingState = existingStates[0];
+                const isPartialUpdate = message.messageType === MessageType.savePartialAppState;
 
                 if (existingState) {
-                    // Update existing state
-                    db.appState.update(existingState.id!, appState).then(() => {
-                        console.log(`Updated state: ${existingState.id}`);
-                        sendResponse({ success: true, id: existingState.id });
-                    }).catch(error => {
-                        console.error('Failed to update state:', error);
-                        sendResponse({ success: false, error: String(error) });
-                    });
+                    // For partial updates, merge with existing state
+                    if (isPartialUpdate) {
+                        // Only update the specific tool state and currentSelectedTool
+                        const updatedState = {
+                            ...existingState,
+                            currentSelectedTool: appState.currentSelectedTool,
+                            toolState: {
+                                ...existingState.toolState,
+                                // Only update the specific tool state if provided
+                                ...(appState.currentSelectedTool && appState.toolState && 
+                                   typeof appState.currentSelectedTool === 'string' && 
+                                   appState.currentSelectedTool in appState.toolState ? 
+                                    { [appState.currentSelectedTool]: appState.toolState[appState.currentSelectedTool as keyof typeof appState.toolState] } : {})
+                            },
+                            updatedAt: new Date()
+                        };
+                        
+                        db.appState.update(existingState.id!, updatedState).then(() => {
+                            console.log(`Updated partial state for tool: ${appState.currentSelectedTool}`);
+                            sendResponse({ success: true, id: existingState.id });
+                        }).catch(error => {
+                            console.error('Failed to update partial state:', error);
+                            sendResponse({ success: false, error: String(error) });
+                        });
+                    } else {
+                        // Full update
+                        db.appState.update(existingState.id!, appState).then(() => {
+                            console.log(`Updated full state: ${existingState.id}`);
+                            sendResponse({ success: true, id: existingState.id });
+                        }).catch(error => {
+                            console.error('Failed to update state:', error);
+                            sendResponse({ success: false, error: String(error) });
+                        });
+                    }
                 } else {
                     // Create new state
                     db.appState.add(appState).then(id => {

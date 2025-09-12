@@ -4,9 +4,11 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { browser } from 'wxt/browser';
 import ExtMessage, { MessageType } from '@/entrypoints/types';
+import { useToolState } from '@/lib/toolStateContext';
 
 export default function DateFormat() {
-    const [inputDate, setInputDate] = useState('');
+    const { toolState, updateToolState } = useToolState();
+    const inputDate = toolState.convertToReadableDate?.input || '';
     const [results, setResults] = useState<Array<{format: string, value: string}>>([]);
 
     const formatDate = (dateInput?: string) => {
@@ -48,9 +50,9 @@ export default function DateFormat() {
 
     useEffect(() => {
         const messageListener = (message: ExtMessage) => {
-            if (message.messageType === MessageType.convertToReadableDate && message.content) {
+            if (message.messageType === MessageType.convertToReadableDateInSidepanel && message.content) {
                 // Auto-fill the input with selected text
-                setInputDate(message.content);
+                updateToolState('convertToReadableDate', { input: message.content });
                 // Auto-run the conversion
                 formatDate(message.content);
             }
@@ -85,11 +87,11 @@ export default function DateFormat() {
                         <Input
                             type="text"
                             value={inputDate}
-                            onChange={(e) => setInputDate(e.target.value)}
+                            onChange={(e) => updateToolState('convertToReadableDate', { input: e.target.value })}
                             placeholder="e.g., 2024-01-01, 1704067200, or Jan 1 2024"
                             className="flex-1"
                         />
-                        <Button onClick={() => formatDate()}>
+                        <Button onClick={() => formatDate(inputDate)}>
                             Convert
                         </Button>
                     </div>

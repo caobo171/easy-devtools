@@ -38,7 +38,7 @@ const tools: ToolWithComponent[] = [
 
 // Main app component that will be wrapped with ToolStateProvider
 const AppContent = () => {
-	const { currentSelectedTool, setCurrentSelectedTool } = useToolState();
+	const { currentSelectedTool, setCurrentSelectedTool, toolState, updateToolState } = useToolState();
 	const { theme, toggleTheme } = useTheme();
 	const { t, i18n } = useTranslation();
 

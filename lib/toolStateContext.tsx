@@ -41,6 +41,9 @@ const defaultToolState: ToolState = {
   convertToReadableDate: {
     input: '',
   },
+  takeScreenshot: {
+    capturedImage: '',
+  },
   // Add other tools with their default states
 };
 

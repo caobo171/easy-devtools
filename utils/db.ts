@@ -15,7 +15,10 @@ export interface ToolState {
   convertToReadableDate: {
     input: string;
   };
-  
+  takeScreenshot: {
+    capturedImage: string;
+  }
+
   // Add other tools here as needed
 }
 

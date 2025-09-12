@@ -3,12 +3,19 @@ export enum MessageType {
     changeTheme = "changeTheme",
     changeLocale = "changeLocale",
 
+
+    saveAppState = "saveAppState",
+    savePartialAppState = "savePartialAppState",
+    loadAppState = "loadAppState",
+
     openInSidebar = "openInSidebar",
     closeSidepanel = "closeSidepanel",
+
+
+
     translateText = "translateText",
     analyzeText = "analyzeText",
-    saveAppState = "saveAppState",
-    loadAppState = "loadAppState",
+
     takeScreenshot = "TAKE_SCREENSHOT",
     screenshotCaptured = "SCREENSHOT_CAPTURED",
     captureVisibleTab = "CAPTURE_VISIBLE_TAB",
