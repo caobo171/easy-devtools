@@ -321,11 +321,6 @@ export const ScreenshotOverlay: React.FC<ScreenshotOverlayProps> = ({ onCapture,
           const croppedImageData = canvas.toDataURL('image/png');
           onCapture(croppedImageData);
           console.log('Cropped and captured!');
-
-          // Make sure overlay is visible again
-          if (overlayRef.current) {
-            overlayRef.current.style.display = 'block';
-          }
         };
 
         img.onerror = () => {
@@ -339,11 +334,6 @@ export const ScreenshotOverlay: React.FC<ScreenshotOverlayProps> = ({ onCapture,
 
         // Set the source to the captured image received from the background script
         img.src = imageData;
-
-        // Show overlay again after screenshot is taken
-        if (overlayRef.current) {
-          overlayRef.current.style.display = 'block';
-        }
       });
     } catch (error) {
       console.error('Error sending message to background script:', error);
@@ -450,15 +440,22 @@ export const ScreenshotOverlay: React.FC<ScreenshotOverlayProps> = ({ onCapture,
         <div
           className="absolute bg-black bg-opacity-75 text-white px-4 py-2 rounded-lg flex items-center gap-2"
           style={{
-            top: selectionRect.y + selectionRect.height + 10,
+            top: selectionRect.y + selectionRect.height - 100,
             left: selectionRect.x + selectionRect.width / 2,
             transform: 'translateX(-50%)',
             zIndex: 9999999
           }}
+          onMouseDown={(e) => e.stopPropagation()}
+          onMouseMove={(e) => e.stopPropagation()}
+          onMouseUp={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
         >
           <Button
             size="sm"
-            onClick={takeScreenshot}
+            onClick={(e) => {
+              e.stopPropagation();
+              takeScreenshot();
+            }}
             className="bg-blue-500 hover:bg-blue-600"
           >
             Capture
@@ -466,7 +463,8 @@ export const ScreenshotOverlay: React.FC<ScreenshotOverlayProps> = ({ onCapture,
           <Button
             size="sm"
             variant="outline"
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
               setMode('selecting');
               setSelectionRect(null);
             }}
@@ -479,14 +477,26 @@ export const ScreenshotOverlay: React.FC<ScreenshotOverlayProps> = ({ onCapture,
 
       {/* Instructions */}
       {mode === 'selecting' && (
-        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-75 text-white px-4 py-2 rounded-lg">
+        <div 
+          className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-75 text-white px-4 py-2 rounded-lg"
+          onMouseDown={(e) => e.stopPropagation()}
+          onMouseMove={(e) => e.stopPropagation()}
+          onMouseUp={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+        >
           <p className="text-sm">Click and drag to select an area to screenshot</p>
           <p className="text-xs text-gray-300">Press ESC to cancel</p>
         </div>
       )}
 
       {mode === 'complete' && selectionRect && (
-        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-75 text-white px-4 py-2 rounded-lg">
+        <div 
+          className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-75 text-white px-4 py-2 rounded-lg"
+          onMouseDown={(e) => e.stopPropagation()}
+          onMouseMove={(e) => e.stopPropagation()}
+          onMouseUp={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+        >
           <p className="text-sm">Adjust selection by dragging or resize handles</p>
           <p className="text-xs text-gray-300">Press Enter to capture, ESC to reset</p>
         </div>
