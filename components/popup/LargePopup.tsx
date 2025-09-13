@@ -34,7 +34,7 @@ export const LargePopup: React.FC<LargePopupProps> = ({
         onClick={onClose}
       />
       
-      <PopupContainer position={position} variant="large" onClose={onClose} className={`z-[1000000001] ${className}`}>
+      <PopupContainer position={position} variant="large" onClose={onClose} className={`z-[1000000001] w-[90vw] h-[90vh] max-w-[90vw] max-h-[90vh] ${className}`}>
         <div className="flex items-center justify-between mb-4 border-b pb-2">
           <h3 className="text-lg font-semibold text-foreground">{title}</h3>
           <div className="flex items-center gap-2">
@@ -53,7 +53,7 @@ export const LargePopup: React.FC<LargePopupProps> = ({
             </Button>
           </div>
         </div>
-        <div className="space-y-4 max-h-[70vh] overflow-y-auto">
+        <div className="space-y-4 h-[calc(90vh-80px)] overflow-y-auto">
           {children}
         </div>
       </PopupContainer>
