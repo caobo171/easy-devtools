@@ -6,7 +6,7 @@ import ExtMessage, { MessageType, Tools } from "@/entrypoints/types.ts";
 import { useTheme } from "@/components/theme-provider.tsx";
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
-import DateFormat from './Tools/DateFormat';
+import DateFormatTool from './Tools/DateFormatTool';
 import BeautifyJSON from './Tools/BeautifyJSON';
 import URLEncoder from './Tools/URLEncoder';
 import Base64Encoder from './Tools/Base64Encoder';
@@ -24,7 +24,7 @@ type ToolWithComponent = Tool & {
 };
 
 const tools: ToolWithComponent[] = [
-	{ id: 'convertToReadableDate', name: 'Date Format', icon: '📅', keywords: ['time', 'calendar', 'date'], component: DateFormat },
+	{ id: 'convertToReadableDate', name: 'Date Format', icon: '📅', keywords: ['time', 'calendar', 'date'], component: DateFormatTool },
 	{ id: 'beautifyJSON', name: 'JSON Beautifier', icon: '🎨', keywords: ['format', 'json', 'pretty'], component: BeautifyJSON },
 	{ id: 'urlEncoder', name: 'URL Encoder', icon: '🔗', keywords: ['encode', 'decode', 'url'], component: URLEncoder },
 	{ id: 'base64Encoder', name: 'Base64 Encoder', icon: '🔐', keywords: ['encode', 'decode', 'base64'], component: Base64Encoder },

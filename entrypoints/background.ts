@@ -2,6 +2,91 @@ import { browser } from "wxt/browser";
 import ExtMessage, { MessageFrom, MessageType, Tools } from "@/entrypoints/types.ts";
 import { db, type AppState, type ToolState } from "@/utils/db";
 
+/**
+ * Saves application state to IndexedDB
+ * Handles both full and partial state updates
+ * 
+ * @param message - The message containing app state data
+ * @param sendResponse - Callback function to send response back
+ * @returns boolean - Always returns true to keep message channel open
+ */
+function saveAppState(message: ExtMessage, sendResponse?: (response: any) => void): boolean {
+    // Parse the JSON string from message.content
+    let appState: AppState;
+    let isPartialUpdate = message.messageType === MessageType.savePartialAppState;
+    
+    try {
+        appState = JSON.parse(message.content as string) as AppState;
+        console.log(`Successfully parsed ${isPartialUpdate ? 'partial' : 'full'} app state:`, appState);
+    } catch (parseError) {
+        if (message.content) {
+            console.log(message.content);
+        }
+        console.error(`Failed to parse ${isPartialUpdate ? 'partial' : 'full'} app state JSON:`, parseError);
+        if (sendResponse) sendResponse({ success: false, error: 'Invalid JSON data' });
+        return true;
+    }
+
+    appState.updatedAt = new Date();
+
+    // Use promises instead of await
+    db.appState.orderBy('updatedAt').reverse().limit(1).toArray().then(existingStates => {
+        const existingState = existingStates[0];
+        const isPartialUpdate = message.messageType === MessageType.savePartialAppState;
+
+        if (existingState) {
+            // For partial updates, merge with existing state
+            if (isPartialUpdate) {
+                // Only update the specific tool state and currentSelectedTool
+                const updatedState = {
+                    ...existingState,
+                    currentSelectedTool: appState.currentSelectedTool,
+                    toolState: {
+                        ...existingState.toolState,
+                        // Only update the specific tool state if provided
+                        ...(appState.currentSelectedTool && appState.toolState && 
+                           typeof appState.currentSelectedTool === 'string' && 
+                           appState.currentSelectedTool in appState.toolState ? 
+                            { [appState.currentSelectedTool]: appState.toolState[appState.currentSelectedTool as keyof typeof appState.toolState] } : {})
+                    },
+                    updatedAt: new Date()
+                };
+                
+                db.appState.update(existingState.id!, updatedState).then(() => {
+                    console.log(`Updated partial state for tool: ${appState.currentSelectedTool}`);
+                    if (sendResponse) sendResponse({ success: true, id: existingState.id });
+                }).catch(error => {
+                    console.error('Failed to update partial state:', error);
+                    if (sendResponse) sendResponse({ success: false, error: String(error) });
+                });
+            } else {
+                // Full update
+                db.appState.update(existingState.id!, appState).then(() => {
+                    console.log(`Updated full state: ${existingState.id}`);
+                    if (sendResponse) sendResponse({ success: true, id: existingState.id });
+                }).catch(error => {
+                    console.error('Failed to update state:', error);
+                    if (sendResponse) sendResponse({ success: false, error: String(error) });
+                });
+            }
+        } else {
+            // Create new state
+            db.appState.add(appState).then(id => {
+                console.log(`Created state: ${id}`);
+                if (sendResponse) sendResponse({ success: true, id });
+            }).catch(error => {
+                console.error('Failed to add state:', error);
+                if (sendResponse) sendResponse({ success: false, error: String(error) });
+            });
+        }
+    }).catch(error => {
+        console.error('Failed to query existing states:', error);
+        if (sendResponse) sendResponse({ success: false, error: String(error) });
+    });
+    
+    return true; // Keep the message channel open for the async response
+}
+
 export default defineBackground(() => {
     console.log('Hello background!', { id: browser.runtime.id });// background.js
 
@@ -63,11 +148,24 @@ export default defineBackground(() => {
                 message = new ExtMessage(MessageType.convertToReadableDateInContent);
                 message.content = info.selectionText || '';
                 message.from = MessageFrom.background;
+
+                saveAppState({
+                    messageType: MessageType.savePartialAppState,
+                    currentSelectedTool: Tools.convertToReadableDate.id,
+                    toolState: {
+                        [Tools.convertToReadableDate.id]: { input: info.selectionText || '' }
+                    }
+                } as unknown as ExtMessage);
                 break;
 
             case Tools.takeScreenshot.id:
                 message = new ExtMessage(MessageType.takeScreenshot);
                 message.from = MessageFrom.background;
+
+                saveAppState({
+                    messageType: MessageType.savePartialAppState,
+                    currentSelectedTool: Tools.takeScreenshot.id,
+                } as unknown as ExtMessage);
                 break;
 
             case MessageType.openInSidebar:
@@ -99,81 +197,8 @@ export default defineBackground(() => {
             });
             return true;
         } else if (message.messageType === MessageType.saveAppState || message.messageType === MessageType.savePartialAppState) {
-            // Save app state to IndexedDB
-            // Parse the JSON string from message.content
-            let appState: AppState;
-            let isPartialUpdate = message.messageType === MessageType.savePartialAppState;
-            
-            try {
-                appState = JSON.parse(message.content as string) as AppState;
-                console.log(`Successfully parsed ${isPartialUpdate ? 'partial' : 'full'} app state:`, appState);
-            } catch (parseError) {
-                if (message.content) {
-                    console.log(message.content);
-                }
-                console.error(`Failed to parse ${isPartialUpdate ? 'partial' : 'full'} app state JSON:`, parseError);
-                sendResponse({ success: false, error: 'Invalid JSON data' });
-                return true;
-            }
-
-            appState.updatedAt = new Date();
-
-            // Use promises instead of await
-            db.appState.orderBy('updatedAt').reverse().limit(1).toArray().then(existingStates => {
-                const existingState = existingStates[0];
-                const isPartialUpdate = message.messageType === MessageType.savePartialAppState;
-
-                if (existingState) {
-                    // For partial updates, merge with existing state
-                    if (isPartialUpdate) {
-                        // Only update the specific tool state and currentSelectedTool
-                        const updatedState = {
-                            ...existingState,
-                            currentSelectedTool: appState.currentSelectedTool,
-                            toolState: {
-                                ...existingState.toolState,
-                                // Only update the specific tool state if provided
-                                ...(appState.currentSelectedTool && appState.toolState && 
-                                   typeof appState.currentSelectedTool === 'string' && 
-                                   appState.currentSelectedTool in appState.toolState ? 
-                                    { [appState.currentSelectedTool]: appState.toolState[appState.currentSelectedTool as keyof typeof appState.toolState] } : {})
-                            },
-                            updatedAt: new Date()
-                        };
-                        
-                        db.appState.update(existingState.id!, updatedState).then(() => {
-                            console.log(`Updated partial state for tool: ${appState.currentSelectedTool}`);
-                            sendResponse({ success: true, id: existingState.id });
-                        }).catch(error => {
-                            console.error('Failed to update partial state:', error);
-                            sendResponse({ success: false, error: String(error) });
-                        });
-                    } else {
-                        // Full update
-                        db.appState.update(existingState.id!, appState).then(() => {
-                            console.log(`Updated full state: ${existingState.id}`);
-                            sendResponse({ success: true, id: existingState.id });
-                        }).catch(error => {
-                            console.error('Failed to update state:', error);
-                            sendResponse({ success: false, error: String(error) });
-                        });
-                    }
-                } else {
-                    // Create new state
-                    db.appState.add(appState).then(id => {
-                        console.log(`Created state: ${id}`);
-                        sendResponse({ success: true, id });
-                    }).catch(error => {
-                        console.error('Failed to add state:', error);
-                        sendResponse({ success: false, error: String(error) });
-                    });
-                }
-            }).catch(error => {
-                console.error('Failed to query existing states:', error);
-                sendResponse({ success: false, error: String(error) });
-            });
-
-            return true; // Keep the message channel open for the async response
+            // Call the extracted function to save app state
+            return saveAppState(message, sendResponse);
         } else if (message.messageType === MessageType.loadAppState) {
             // Load app state from IndexedDB using promises instead of await
             db.appState.orderBy('updatedAt').reverse().limit(1).toArray().then(states => {
