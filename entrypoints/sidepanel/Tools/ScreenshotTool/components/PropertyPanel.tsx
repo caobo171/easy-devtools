@@ -304,7 +304,7 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
                             <input
                                 type="range"
                                 min="0"
-                                max="100"
+                                max="200"
                                 value={imageAdjustments.padding}
                                 onChange={(e) => updateAdjustment('padding', Number(e.target.value))}
                                 className="w-full accent-blue-500"
