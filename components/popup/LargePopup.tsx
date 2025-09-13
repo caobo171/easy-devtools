@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
 
 export interface LargePopupProps {
-  title: string;
+  title?: string; // Made optional since we're removing the header
   children: ReactNode;
   position: PopupPosition;
   onClose: () => void;
@@ -15,10 +15,10 @@ export interface LargePopupProps {
 
 /**
  * Large popup component for comprehensive interactions
- * Appears centered on the screen and provides a full-featured interface
+ * Appears centered on the screen with a clean, maximized interface
+ * No header to maximize space for content, close button in top-right corner
  */
 export const LargePopup: React.FC<LargePopupProps> = ({
-  title,
   children,
   position,
   onClose,
@@ -34,26 +34,35 @@ export const LargePopup: React.FC<LargePopupProps> = ({
         onClick={onClose}
       />
       
-      <PopupContainer position={position} variant="large" onClose={onClose} className={`z-[1000000001] w-[90vw] h-[90vh] max-w-[90vw] max-h-[90vh] ${className}`}>
-        <div className="flex items-center justify-between mb-4 border-b pb-2">
-          <h3 className="text-lg font-semibold text-foreground">{title}</h3>
-          <div className="flex items-center gap-2">
-            {onOpenInSidebar && (
-              <Button variant="outline" size="sm" onClick={onOpenInSidebar}>
-                Open in sidebar
-              </Button>
-            )}
-            {onOpenInNewTab && (
-              <Button variant="outline" size="sm" onClick={onOpenInNewTab}>
-                Open in new tab
-              </Button>
-            )}
-            <Button variant="ghost" size="sm" onClick={onClose}>
-              <X className="h-4 w-4" />
+      {/* Close button positioned outside the popup in the top-right corner */}
+      <Button 
+        variant="secondary" 
+        size="icon" 
+        onClick={onClose} 
+        className="fixed right-2 top-2 z-[1000000002] rounded-full bg-gray-800 hover:bg-gray-700 shadow-lg"
+      >
+        <X className="h-4 w-4" />
+      </Button>
+      
+      {/* Optional sidebar/new tab buttons positioned at the top */}
+      {(onOpenInSidebar || onOpenInNewTab) && (
+        <div className="fixed right-14 top-2 z-[1000000002] flex gap-2">
+          {onOpenInSidebar && (
+            <Button variant="secondary" size="sm" onClick={onOpenInSidebar} className="bg-gray-800 hover:bg-gray-700">
+              Open in sidebar
             </Button>
-          </div>
+          )}
+          {onOpenInNewTab && (
+            <Button variant="secondary" size="sm" onClick={onOpenInNewTab} className="bg-gray-800 hover:bg-gray-700">
+              Open in new tab
+            </Button>
+          )}
         </div>
-        <div className="space-y-4 h-[calc(90vh-80px)] overflow-y-auto">
+      )}
+      
+      <PopupContainer position={position} variant="large" onClose={onClose} className={`z-[1000000001] w-[95vw] h-[95vh] max-w-[95vw] max-h-[95vh] p-0 ${className}`}>
+        {/* Content area - no fixed height, adapts to content */}
+        <div className="w-full h-full overflow-hidden">
           {children}
         </div>
       </PopupContainer>

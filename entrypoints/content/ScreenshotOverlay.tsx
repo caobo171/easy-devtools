@@ -36,8 +36,8 @@ export const ScreenshotOverlay: React.FC<ScreenshotOverlayProps> = ({ onCapture,
     if (!rect) return { x: 0, y: 0 };
 
     return {
-      x: e.clientX - rect.left + window.scrollX,
-      y: e.clientY - rect.top + window.scrollY
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
     };
   }, []);
 

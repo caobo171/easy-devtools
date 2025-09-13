@@ -3,7 +3,7 @@ import '../../assets/main.css'
 
 import React from 'react';
 import { LargePopup } from '@/components/popup';
-import ScreenshotTool from '@/entrypoints/sidepanel/Tools/ScreenshotTool';
+import ScreenshotTool from '../sidepanel/Tools/ScreenshotTool';
 
 interface ScreenshotPopupProps {
   imageData: string;

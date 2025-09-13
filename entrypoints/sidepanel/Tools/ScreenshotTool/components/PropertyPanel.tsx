@@ -42,33 +42,38 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
     };
 
     return (
-        <div className="w-80 bg-gray-900 border-l border-gray-700 p-4 space-y-6 overflow-y-auto">
-            {/* Styles Header */}
-            <div className="flex items-center justify-between">
-                <h3 className="text-white font-semibold text-lg">🎨 Styles</h3>
-                <div className="flex gap-1">
-                    <Button
-                        onClick={onUndo}
-                        disabled={!hasAnnotations}
-                        size="sm"
-                        variant="ghost"
-                        className="text-gray-400 hover:text-white p-1 h-8 w-8"
-                        title="Undo last action"
-                    >
-                        ↶
-                    </Button>
-                    <Button
-                        onClick={onClearAll}
-                        disabled={!hasAnnotations}
-                        size="sm"
-                        variant="ghost"
-                        className="text-gray-400 hover:text-white p-1 h-8 w-8"
-                        title="Clear all annotations"
-                    >
-                        🗑️
-                    </Button>
+        <div className="w-80 bg-gray-900 border-l border-gray-700 flex flex-col h-full">
+            {/* Styles Header - Fixed */}
+            <div className="flex-shrink-0 p-4 border-b border-gray-700">
+                <div className="flex items-center justify-between">
+                    <h3 className="text-white font-semibold text-lg">🎨 Styles</h3>
+                    <div className="flex gap-1">
+                        <Button
+                            onClick={onUndo}
+                            disabled={!hasAnnotations}
+                            size="sm"
+                            variant="ghost"
+                            className="text-gray-400 hover:text-white p-1 h-8 w-8"
+                            title="Undo last action"
+                        >
+                            ↶
+                        </Button>
+                        <Button
+                            onClick={onClearAll}
+                            disabled={!hasAnnotations}
+                            size="sm"
+                            variant="ghost"
+                            className="text-gray-400 hover:text-white p-1 h-8 w-8"
+                            title="Clear all annotations"
+                        >
+                            🗑️
+                        </Button>
+                    </div>
                 </div>
             </div>
+
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-6">
 
             {/* Color Picker */}
             <div className="space-y-3">
@@ -273,6 +278,7 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
                         />
                     ))}
                 </div>
+            </div>
             </div>
         </div>
     );

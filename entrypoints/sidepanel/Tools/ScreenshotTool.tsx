@@ -163,9 +163,9 @@ export default function ScreenshotTool({ initialImage }: ScreenshotToolProps) {
     };
 
     return (
-        <div className="h-screen bg-gray-900 text-white flex flex-col overflow-hidden">
+        <div className="h-full bg-gray-900 text-white flex flex-col">
             {/* Top Toolbar */}
-            <div className="p-4 border-b border-gray-700">
+            <div className="flex-shrink-0 p-4 border-b border-gray-700">
                 <ToolBar
                     editMode={state.editMode}
                     setEditMode={state.setEditMode}
@@ -176,54 +176,60 @@ export default function ScreenshotTool({ initialImage }: ScreenshotToolProps) {
             </div>
 
             {/* Main Content Area */}
-            <div className="flex-1 flex overflow-hidden">
-                {/* Canvas Area */}
-                <CanvasEditor
-                    capturedImage={state.capturedImage}
-                    canvasRef={state.canvasRef}
-                    imageRef={state.imageRef}
-                    cropArea={state.cropArea}
-                    annotations={state.annotations}
-                    currentAnnotation={state.currentAnnotation}
-                    editMode={state.editMode}
-                    imageAdjustments={state.imageAdjustments}
-                    onMouseDown={handleCanvasMouseDown}
-                    onMouseMove={handleCanvasMouseMove}
-                    onMouseUp={handleCanvasMouseUp}
-                    drawImageWithAnnotations={drawImageWithAnnotations}
-                />
-
-                {/* Right Property Panel */}
-                {state.capturedImage && (
-                    <PropertyPanel
+            <div className="flex-1 flex min-h-0">
+                {/* Canvas Area - Fixed, no scrolling */}
+                <div className="flex-1 flex overflow-hidden">
+                    <CanvasEditor
+                        capturedImage={state.capturedImage}
+                        canvasRef={state.canvasRef}
+                        imageRef={state.imageRef}
+                        cropArea={state.cropArea}
+                        annotations={state.annotations}
+                        currentAnnotation={state.currentAnnotation}
                         editMode={state.editMode}
-                        selectedColor={state.selectedColor}
-                        setSelectedColor={state.setSelectedColor}
-                        fontSize={state.fontSize}
-                        setFontSize={state.setFontSize}
-                        strokeWidth={state.strokeWidth}
-                        setStrokeWidth={state.setStrokeWidth}
                         imageAdjustments={state.imageAdjustments}
-                        setImageAdjustments={state.setImageAdjustments}
-                        onUndo={state.undoLastAnnotation}
-                        onClearAll={state.clearAnnotations}
-                        hasAnnotations={state.annotations.length > 0}
+                        onMouseDown={handleCanvasMouseDown}
+                        onMouseMove={handleCanvasMouseMove}
+                        onMouseUp={handleCanvasMouseUp}
+                        drawImageWithAnnotations={drawImageWithAnnotations}
                     />
+                </div>
+
+                {/* Right Property Panel - Only this scrolls */}
+                {state.capturedImage && (
+                    <div className="flex-shrink-0">
+                        <PropertyPanel
+                            editMode={state.editMode}
+                            selectedColor={state.selectedColor}
+                            setSelectedColor={state.setSelectedColor}
+                            fontSize={state.fontSize}
+                            setFontSize={state.setFontSize}
+                            strokeWidth={state.strokeWidth}
+                            setStrokeWidth={state.setStrokeWidth}
+                            imageAdjustments={state.imageAdjustments}
+                            setImageAdjustments={state.setImageAdjustments}
+                            onUndo={state.undoLastAnnotation}
+                            onClearAll={state.clearAnnotations}
+                            hasAnnotations={state.annotations.length > 0}
+                        />
+                    </div>
                 )}
             </div>
 
             {/* Bottom Status Bar */}
-            <StatusBar
-                capturedImage={state.capturedImage}
-                cropArea={state.cropArea}
-                onCopy={copyToClipboard}
-                onDownload={downloadImage}
-                onOpenInNewTab={openInNewTab}
-                onApplyCrop={applyCrop}
-                onReplaceImage={state.takeScreenshot}
-                onRemoveImage={state.clearImage}
-                editMode={state.editMode}
-            />
+            <div className="flex-shrink-0">
+                <StatusBar
+                    capturedImage={state.capturedImage}
+                    cropArea={state.cropArea}
+                    onCopy={copyToClipboard}
+                    onDownload={downloadImage}
+                    onOpenInNewTab={openInNewTab}
+                    onApplyCrop={applyCrop}
+                    onReplaceImage={state.takeScreenshot}
+                    onRemoveImage={state.clearImage}
+                    editMode={state.editMode}
+                />
+            </div>
 
             {/* Text Input Modal */}
             <TextInputModal

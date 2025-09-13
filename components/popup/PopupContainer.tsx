@@ -32,7 +32,7 @@ export const PopupContainer: React.FC<PopupContainerProps> = ({
       return `fixed transform max-w-[320px]`;
     } else {
       // Large popups are centered on the screen
-      return `fixed left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 max-w-[90vw] max-h-[90vh] w-[600px]`;
+      return `fixed left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 max-w-[95vw] max-h-[95vh] w-[95vw] h-[95vh]`;
     }
   };
 
@@ -40,7 +40,7 @@ export const PopupContainer: React.FC<PopupContainerProps> = ({
   const containerClasses = `
     ${getPositionClasses()}
     bg-background border border-border rounded-lg shadow-lg
-    ${variant === 'small' ? 'p-3' : 'p-4'}
+    ${variant === 'small' ? 'p-3' : className.includes('p-0') ? '' : 'p-4'}
     ${className}
     z-[1000000001]
   `;
