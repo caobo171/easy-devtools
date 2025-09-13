@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { browser } from 'wxt/browser';
 import { MessageType, MessageFrom } from '@/entrypoints/types';
 import { CropArea, Annotation, EditMode, ImageAdjustments } from '../types';
+import Konva from 'konva';
 
 export const useScreenshotState = (initialImage?: string | null) => {
     const [capturedImage, setCapturedImage] = useState<string | null>(null);
@@ -31,7 +32,7 @@ export const useScreenshotState = (initialImage?: string | null) => {
         balanceImage: false
     });
 
-    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const stageRef = useRef<Konva.Stage>(null);
     const imageRef = useRef<HTMLImageElement>(null);
 
     useEffect(() => {
@@ -140,7 +141,7 @@ export const useScreenshotState = (initialImage?: string | null) => {
         setImageAdjustments,
         
         // Refs
-        canvasRef,
+        stageRef,
         imageRef,
         
         // Actions

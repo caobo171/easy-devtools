@@ -3,11 +3,9 @@ import { browser } from 'wxt/browser';
 import { MessageType, MessageFrom } from '@/entrypoints/types';
 import { ScreenshotToolProps } from './ScreenshotTool/types';
 import { useScreenshotState } from './ScreenshotTool/hooks/useScreenshotState';
-import { useCanvasDrawing } from './ScreenshotTool/hooks/useCanvasDrawing';
-import { useCanvasInteraction } from './ScreenshotTool/hooks/useCanvasInteraction';
 import { ToolBar } from './ScreenshotTool/components/ToolBar';
 import { PropertyPanel } from './ScreenshotTool/components/PropertyPanel';
-import { CanvasEditor } from './ScreenshotTool/components/CanvasEditor';
+import { KonvaEditor } from './ScreenshotTool/components/KonvaEditor';
 import { StatusBar } from './ScreenshotTool/components/StatusBar';
 import { TextInputModal } from './ScreenshotTool/components/TextInputModal';
 
@@ -15,64 +13,20 @@ export default function ScreenshotTool({ initialImage }: ScreenshotToolProps) {
     // Use the custom hook for state management
     const state = useScreenshotState(initialImage);
 
-    // Use canvas drawing hook
-    const { drawImageWithAnnotations } = useCanvasDrawing({
-        canvasRef: state.canvasRef,
-        imageRef: state.imageRef,
-        capturedImage: state.capturedImage,
-        annotations: state.annotations,
-        currentAnnotation: state.currentAnnotation,
-        cropArea: state.cropArea,
-        editMode: state.editMode,
-        fontSize: state.fontSize,
-        imageAdjustments: state.imageAdjustments
-    });
-
-    // Use canvas interaction hook
-    const { handleCanvasMouseDown, handleCanvasMouseMove, handleCanvasMouseUp } = useCanvasInteraction({
-        canvasRef: state.canvasRef,
-        capturedImage: state.capturedImage,
-        editMode: state.editMode,
-        annotations: state.annotations,
-        setAnnotations: state.setAnnotations,
-        selectedColor: state.selectedColor,
-        fontSize: state.fontSize,
-        strokeWidth: state.strokeWidth,
-        isDragging: state.isDragging,
-        setIsDragging: state.setIsDragging,
-        dragStart: state.dragStart,
-        setDragStart: state.setDragStart,
-        cropArea: state.cropArea,
-        setCropArea: state.setCropArea,
-        currentAnnotation: state.currentAnnotation,
-        setCurrentAnnotation: state.setCurrentAnnotation,
-        selectedAnnotationId: state.selectedAnnotationId,
-        setSelectedAnnotationId: state.setSelectedAnnotationId,
-        isMovingAnnotation: state.isMovingAnnotation,
-        setIsMovingAnnotation: state.setIsMovingAnnotation,
-        setTextPosition: state.setTextPosition,
-        setShowTextInput: state.setShowTextInput
-    });
 
     // Action handlers
     const downloadImage = () => {
-        if (!state.capturedImage) return;
+        if (!state.capturedImage || !state.stageRef.current) return;
 
-        const canvas = state.canvasRef.current;
-        if (!canvas) return;
-
-        canvas.toBlob((blob) => {
-            if (blob) {
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `screenshot-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.png`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            }
-        });
+        const stage = state.stageRef.current;
+        const dataURL = stage.toDataURL({ pixelRatio: 2 });
+        
+        const a = document.createElement('a');
+        a.href = dataURL;
+        a.download = `screenshot-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
     };
 
     const openInNewTab = async () => {
@@ -114,34 +68,43 @@ export default function ScreenshotTool({ initialImage }: ScreenshotToolProps) {
     };
 
     const applyCrop = () => {
-        if (!state.cropArea || !state.capturedImage || !state.imageRef.current) return;
+        if (!state.cropArea || !state.capturedImage || !state.stageRef.current) return;
 
+        const stage = state.stageRef.current;
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        const image = state.imageRef.current;
-        const scaleX = image.naturalWidth / state.canvasRef.current!.width;
-        const scaleY = image.naturalHeight / state.canvasRef.current!.height;
+        // Get the stage dimensions
+        const stageWidth = stage.width();
+        const stageHeight = stage.height();
 
-        canvas.width = state.cropArea.width * scaleX;
-        canvas.height = state.cropArea.height * scaleY;
+        // Create a temporary image to get original dimensions
+        const img = new Image();
+        img.onload = () => {
+            const scaleX = img.naturalWidth / stageWidth;
+            const scaleY = img.naturalHeight / stageHeight;
 
-        ctx.drawImage(
-            image,
-            state.cropArea.x * scaleX,
-            state.cropArea.y * scaleY,
-            state.cropArea.width * scaleX,
-            state.cropArea.height * scaleY,
-            0,
-            0,
-            canvas.width,
-            canvas.height
-        );
+            canvas.width = state.cropArea!.width * scaleX;
+            canvas.height = state.cropArea!.height * scaleY;
 
-        const croppedDataUrl = canvas.toDataURL('image/png');
-        state.setCapturedImage(croppedDataUrl);
-        state.setCropArea(null);
+            ctx.drawImage(
+                img,
+                state.cropArea!.x * scaleX,
+                state.cropArea!.y * scaleY,
+                state.cropArea!.width * scaleX,
+                state.cropArea!.height * scaleY,
+                0,
+                0,
+                canvas.width,
+                canvas.height
+            );
+
+            const croppedDataUrl = canvas.toDataURL('image/png');
+            state.setCapturedImage(croppedDataUrl);
+            state.setCropArea(null);
+        };
+        img.src = state.capturedImage;
     };
 
     const addTextAnnotation = () => {
@@ -179,19 +142,24 @@ export default function ScreenshotTool({ initialImage }: ScreenshotToolProps) {
             <div className="flex-1 flex min-h-0">
                 {/* Canvas Area - Fixed, no scrolling */}
                 <div className="flex-1 flex overflow-hidden">
-                    <CanvasEditor
+                    <KonvaEditor
                         capturedImage={state.capturedImage}
-                        canvasRef={state.canvasRef}
-                        imageRef={state.imageRef}
                         cropArea={state.cropArea}
                         annotations={state.annotations}
                         currentAnnotation={state.currentAnnotation}
                         editMode={state.editMode}
                         imageAdjustments={state.imageAdjustments}
-                        onMouseDown={handleCanvasMouseDown}
-                        onMouseMove={handleCanvasMouseMove}
-                        onMouseUp={handleCanvasMouseUp}
-                        drawImageWithAnnotations={drawImageWithAnnotations}
+                        selectedColor={state.selectedColor}
+                        fontSize={state.fontSize}
+                        strokeWidth={state.strokeWidth}
+                        stageRef={state.stageRef}
+                        onAnnotationsChange={state.setAnnotations}
+                        onCurrentAnnotationChange={state.setCurrentAnnotation}
+                        onCropAreaChange={state.setCropArea}
+                        onTextInputRequest={(position) => {
+                            state.setTextPosition(position);
+                            state.setShowTextInput(true);
+                        }}
                     />
                 </div>
 
