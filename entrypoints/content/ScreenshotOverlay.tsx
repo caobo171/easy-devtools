@@ -10,7 +10,6 @@ interface ScreenshotOverlayProps {
 export const ScreenshotOverlay: React.FC<ScreenshotOverlayProps> = ({ onCapture, onCancel }) => {
   const [isSelecting, setIsSelecting] = useState(false);
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
-  const [currentPos, setCurrentPos] = useState({ x: 0, y: 0 });
   const [selectionRect, setSelectionRect] = useState({ x: 0, y: 0, width: 0, height: 0 });
   const overlayRef = useRef<HTMLDivElement>(null);
 
@@ -23,7 +22,7 @@ export const ScreenshotOverlay: React.FC<ScreenshotOverlayProps> = ({ onCapture,
     const y = e.clientY - rect.top + window.scrollY;
 
     setStartPos({ x, y });
-    setCurrentPos({ x, y });
+    setSelectionRect({ x, y, width: 0, height: 0 });
     setIsSelecting(true);
   }, []);
 
@@ -36,8 +35,6 @@ export const ScreenshotOverlay: React.FC<ScreenshotOverlayProps> = ({ onCapture,
     const x = e.clientX - rect.left + window.scrollX;
     const y = e.clientY - rect.top + window.scrollY;
 
-    setCurrentPos({ x, y });
-
     const minX = Math.min(startPos.x, x);
     const minY = Math.min(startPos.y, y);
     const width = Math.abs(x - startPos.x);
@@ -47,8 +44,13 @@ export const ScreenshotOverlay: React.FC<ScreenshotOverlayProps> = ({ onCapture,
   }, [isSelecting, startPos]);
 
   const handleMouseUp = useCallback(async () => {
-    if (!isSelecting || selectionRect.width < 5 || selectionRect.height < 5) {
+    if (!isSelecting) {
+      return;
+    }
+    
+    if (selectionRect.width < 5 || selectionRect.height < 5) {
       // Ignore tiny selections
+      setIsSelecting(false);
       return;
     }
     
@@ -196,17 +198,17 @@ export const ScreenshotOverlay: React.FC<ScreenshotOverlayProps> = ({ onCapture,
       onMouseUp={handleMouseUp}
     >
       {/* Selection rectangle */}
-      {isSelecting && (
-        <div
-          className="absolute border-2 border-blue-500 bg-blue-200 bg-opacity-20"
-          style={{
-            left: selectionRect.x,
-            top: selectionRect.y,
-            width: selectionRect.width,
-            height: selectionRect.height,
-          }}
-        />
-      )}
+      <div
+        className="absolute border-2 border-blue-500 bg-blue-200 bg-opacity-20 pointer-events-none"
+        style={{
+          left: selectionRect.x,
+          top: selectionRect.y,
+          width: selectionRect.width,
+          height: selectionRect.height,
+          display: isSelecting ? 'block' : 'none',
+          zIndex: 9999999
+        }}
+      />
 
       {/* Instructions */}
       <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-75 text-white px-4 py-2 rounded-lg">
