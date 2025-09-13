@@ -47,6 +47,24 @@ export default () => {
     };
     
     useEffect(() => {
+        // Add keyboard shortcut listener for screenshot
+        const handleKeyDown = (event: KeyboardEvent) => {
+            console.log('Key pressed:', event.key, event.shiftKey, event.metaKey, event.ctrlKey);
+            // Check for Cmd+Shift+6 (Mac) or Ctrl+Shift+6 (Windows/Linux)
+            if (event.shiftKey && event.key === '6') {
+                event.preventDefault();
+                const correctModifier = event.metaKey;
+                
+                console.log('Correct modifier:', correctModifier);
+                if (correctModifier) {
+                    event.preventDefault();
+                    setShowScreenshotOverlay(true);
+                }
+            }
+        };
+
+        document.addEventListener('keydown', handleKeyDown);
+
         // Listen for messages from background script
         const messageListener = (message: ExtMessage, sender: any, sendResponse: (response?: any) => void) => {
             console.log('Content script received message:', message);
@@ -84,6 +102,7 @@ export default () => {
         browser.runtime.onMessage.addListener(messageListener);
 
         return () => {
+            document.removeEventListener('keydown', handleKeyDown);
             browser.runtime.onMessage.removeListener(messageListener);
         };
     }, []);
