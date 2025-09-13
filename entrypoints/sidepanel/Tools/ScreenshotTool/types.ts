@@ -45,6 +45,8 @@ export interface ImageAdjustments {
     shadow: number;
     balanceImage: boolean;
     background: BackgroundStyle;
+    insetBalance: boolean;
+    inset: number;
 }
 
 export interface ScreenshotToolProps {

@@ -40,10 +40,14 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
     const backgroundImageRef = useRef<Konva.Image>(null);
     const transformerRef = useRef<Konva.Transformer>(null);
     const [image, setImage] = useState<HTMLImageElement | null>(null);
+    const [processedImage, setProcessedImage] = useState<HTMLImageElement | null>(null);
     const [backgroundImage, setBackgroundImage] = useState<HTMLImageElement | null>(null);
     const [stageSize, setStageSize] = useState({ width: 800, height: 600 });
     const [isDrawing, setIsDrawing] = useState(false);
     const [selectedId, setSelectedId] = useState<string | null>(null);
+    const [insetColors, setInsetColors] = useState({ top: '#ffffff', right: '#ffffff', bottom: '#ffffff', left: '#ffffff' });
+
+    console.log(processedImage)
 
     // Load image and calculate stage size including padding
     useEffect(() => {
@@ -74,6 +78,17 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
             img.src = capturedImage;
         }
     }, [capturedImage, imageAdjustments.padding]);
+
+    // Process image with inset balance when settings change
+    useEffect(() => {
+        if (image) {
+            if (imageAdjustments.insetBalance || (imageAdjustments.inset > 0)) {
+                createProcessedImageWithInset(image);
+            } else {
+                setProcessedImage(image);
+            }
+        }
+    }, [imageAdjustments.insetBalance, imageAdjustments.inset, image]);
 
     // Load background image when background changes
     useEffect(() => {
@@ -200,6 +215,184 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
         }
 
         onCurrentAnnotationChange(newAnnotation);
+    };
+
+    // Create processed image with auto-balance and inset colors baked into pixels
+    const createProcessedImageWithInset = (originalImage: HTMLImageElement) => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        const originalWidth = originalImage.width;
+        const originalHeight = originalImage.height;
+
+        // Step 1: Auto-balance if enabled
+        let balancedImage = originalImage;
+        let cropArea = { x: 0, y: 0, width: originalWidth, height: originalHeight };
+
+        if (imageAdjustments.insetBalance) {
+            const balanceResult = calculateAutoBalance(originalImage);
+            cropArea = balanceResult.cropArea;
+            balancedImage = balanceResult.balancedImage;
+        }
+
+        const insetSize = imageAdjustments.inset;
+        const balancedWidth = cropArea.width;
+        const balancedHeight = cropArea.height;
+        
+        // Step 2: Create final canvas with inset space
+        canvas.width = balancedWidth + (insetSize * 2);
+        canvas.height = balancedHeight + (insetSize * 2);
+
+        if (insetSize > 0) {
+            // Extract edge colors from balanced image for inset
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            if (!tempCtx) return;
+
+            tempCanvas.width = balancedWidth;
+            tempCanvas.height = balancedHeight;
+            tempCtx.drawImage(balancedImage, cropArea.x, cropArea.y, balancedWidth, balancedHeight, 0, 0, balancedWidth, balancedHeight);
+
+            const imageData = tempCtx.getImageData(0, 0, balancedWidth, balancedHeight);
+            const data = imageData.data;
+
+            const getPixelColor = (x: number, y: number) => {
+                const idx = (y * balancedWidth + x) * 4;
+                return {
+                    r: data[idx],
+                    g: data[idx + 1],
+                    b: data[idx + 2]
+                };
+            };
+
+            // Sample edge colors from balanced image
+            const topColor = getPixelColor(Math.floor(balancedWidth / 2), 0);
+            const bottomColor = getPixelColor(Math.floor(balancedWidth / 2), balancedHeight - 1);
+            const leftColor = getPixelColor(0, Math.floor(balancedHeight / 2));
+            const rightColor = getPixelColor(balancedWidth - 1, Math.floor(balancedHeight / 2));
+
+            // Fill inset areas with edge colors
+            ctx.fillStyle = `rgb(${topColor.r}, ${topColor.g}, ${topColor.b})`;
+            ctx.fillRect(0, 0, canvas.width, insetSize);
+
+            ctx.fillStyle = `rgb(${bottomColor.r}, ${bottomColor.g}, ${bottomColor.b})`;
+            ctx.fillRect(0, canvas.height - insetSize, canvas.width, insetSize);
+
+            ctx.fillStyle = `rgb(${leftColor.r}, ${leftColor.g}, ${leftColor.b})`;
+            ctx.fillRect(0, insetSize, insetSize, canvas.height - (insetSize * 2));
+
+            ctx.fillStyle = `rgb(${rightColor.r}, ${rightColor.g}, ${rightColor.b})`;
+            ctx.fillRect(canvas.width - insetSize, insetSize, insetSize, canvas.height - (insetSize * 2));
+        }
+
+        // Draw the balanced image in the center
+        ctx.drawImage(balancedImage, cropArea.x, cropArea.y, balancedWidth, balancedHeight, insetSize, insetSize, balancedWidth, balancedHeight);
+
+        // Create new image element from canvas
+        const processedImg = new Image();
+        processedImg.onload = () => {
+            setProcessedImage(processedImg);
+        };
+        processedImg.src = canvas.toDataURL();
+    };
+
+    // Calculate auto-balance crop area by analyzing edge differences
+    const calculateAutoBalance = (image: HTMLImageElement) => {
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+        if (!tempCtx) return { cropArea: { x: 0, y: 0, width: image.width, height: image.height }, balancedImage: image };
+
+        tempCanvas.width = image.width;
+        tempCanvas.height = image.height;
+        tempCtx.drawImage(image, 0, 0);
+
+        const imageData = tempCtx.getImageData(0, 0, image.width, image.height);
+        const data = imageData.data;
+
+        const getPixelColor = (x: number, y: number) => {
+            const idx = (y * image.width + x) * 4;
+            return {
+                r: data[idx],
+                g: data[idx + 1],
+                b: data[idx + 2]
+            };
+        };
+
+        const colorDistance = (c1: {r: number, g: number, b: number}, c2: {r: number, g: number, b: number}) => {
+            return Math.sqrt(Math.pow(c1.r - c2.r, 2) + Math.pow(c1.g - c2.g, 2) + Math.pow(c1.b - c2.b, 2));
+        };
+
+        // Analyze top vs bottom difference
+        let topCropPixels = 0;
+        let bottomCropPixels = 0;
+        
+        const sampleWidth = Math.min(100, image.width); // Sample center area
+        const startX = Math.floor((image.width - sampleWidth) / 2);
+        
+        for (let i = 0; i < Math.min(50, Math.floor(image.height / 4)); i++) {
+            let topRowDiff = 0;
+            let bottomRowDiff = 0;
+            let samples = 0;
+            
+            for (let x = startX; x < startX + sampleWidth; x += 5) {
+                const topColor = getPixelColor(x, i);
+                const bottomColor = getPixelColor(x, image.height - 1 - i);
+                const centerTopColor = getPixelColor(x, Math.floor(image.height * 0.3));
+                const centerBottomColor = getPixelColor(x, Math.floor(image.height * 0.7));
+                
+                topRowDiff += colorDistance(topColor, centerTopColor);
+                bottomRowDiff += colorDistance(bottomColor, centerBottomColor);
+                samples++;
+            }
+            
+            const avgTopDiff = topRowDiff / samples;
+            const avgBottomDiff = bottomRowDiff / samples;
+            
+            if (avgTopDiff > 30) topCropPixels = i + 1;
+            if (avgBottomDiff > 30) bottomCropPixels = i + 1;
+        }
+
+        // Analyze left vs right difference
+        let leftCropPixels = 0;
+        let rightCropPixels = 0;
+        
+        const sampleHeight = Math.min(100, image.height);
+        const startY = Math.floor((image.height - sampleHeight) / 2);
+        
+        for (let i = 0; i < Math.min(50, Math.floor(image.width / 4)); i++) {
+            let leftColDiff = 0;
+            let rightColDiff = 0;
+            let samples = 0;
+            
+            for (let y = startY; y < startY + sampleHeight; y += 5) {
+                const leftColor = getPixelColor(i, y);
+                const rightColor = getPixelColor(image.width - 1 - i, y);
+                const centerLeftColor = getPixelColor(Math.floor(image.width * 0.3), y);
+                const centerRightColor = getPixelColor(Math.floor(image.width * 0.7), y);
+                
+                leftColDiff += colorDistance(leftColor, centerLeftColor);
+                rightColDiff += colorDistance(rightColor, centerRightColor);
+                samples++;
+            }
+            
+            const avgLeftDiff = leftColDiff / samples;
+            const avgRightDiff = rightColDiff / samples;
+            
+            if (avgLeftDiff > 30) leftCropPixels = i + 1;
+            if (avgRightDiff > 30) rightCropPixels = i + 1;
+        }
+
+        console.log('Auto-balance crop:', { top: topCropPixels, bottom: bottomCropPixels, left: leftCropPixels, right: rightCropPixels });
+
+        const cropArea = {
+            x: leftCropPixels,
+            y: topCropPixels,
+            width: image.width - leftCropPixels - rightCropPixels,
+            height: image.height - topCropPixels - bottomCropPixels
+        };
+
+        return { cropArea, balancedImage: image };
     };
 
     const handleStageMouseMove = (e: Konva.KonvaEventObject<MouseEvent>) => {
@@ -398,53 +591,13 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                                             }
                                             : undefined
                                     }
-                                    fillLinearGradientColorStops={
-                                        imageAdjustments.background.type === 'gradient' && 
-                                        imageAdjustments.background.gradient?.type === 'linear'
-                                            ? imageAdjustments.background.gradient.colors.flatMap((color, index) => [
-                                                index / (imageAdjustments.background.gradient!.colors.length - 1), color
-                                            ])
-                                            : undefined
-                                    }
-                                    fillRadialGradientStartPoint={
-                                        imageAdjustments.background.type === 'gradient' && 
-                                        imageAdjustments.background.gradient?.type === 'radial'
-                                            ? { x: stageSize.width / 2, y: stageSize.height / 2 }
-                                            : undefined
-                                    }
-                                    fillRadialGradientEndPoint={
-                                        imageAdjustments.background.type === 'gradient' && 
-                                        imageAdjustments.background.gradient?.type === 'radial'
-                                            ? { x: stageSize.width / 2, y: stageSize.height / 2 }
-                                            : undefined
-                                    }
-                                    fillRadialGradientStartRadius={
-                                        imageAdjustments.background.type === 'gradient' && 
-                                        imageAdjustments.background.gradient?.type === 'radial'
-                                            ? 0
-                                            : undefined
-                                    }
-                                    fillRadialGradientEndRadius={
-                                        imageAdjustments.background.type === 'gradient' && 
-                                        imageAdjustments.background.gradient?.type === 'radial'
-                                            ? Math.max(stageSize.width, stageSize.height) / 2
-                                            : undefined
-                                    }
-                                    fillRadialGradientColorStops={
-                                        imageAdjustments.background.type === 'gradient' && 
-                                        imageAdjustments.background.gradient?.type === 'radial'
-                                            ? imageAdjustments.background.gradient.colors.flatMap((color, index) => [
-                                                index / (imageAdjustments.background.gradient!.colors.length - 1), color
-                                            ])
-                                            : undefined
-                                    }
                                 />
                             )}
                             
-                            {image && (
+                            {processedImage && (
                                 <KonvaImage
                                     ref={imageRef}
-                                    image={image}
+                                    image={processedImage}
                                     x={imageAdjustments.padding}
                                     y={imageAdjustments.padding}
                                     width={stageSize.width - (imageAdjustments.padding * 2)}

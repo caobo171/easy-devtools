@@ -222,8 +222,8 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
                         <button
                             onClick={() => setBackgroundTab('desktop')}
                             className={`flex-1 py-2 px-3 text-sm rounded-md transition-colors ${backgroundTab === 'desktop'
-                                    ? 'text-white bg-gray-700'
-                                    : 'text-gray-400 hover:text-white'
+                                ? 'text-white bg-gray-700'
+                                : 'text-gray-400 hover:text-white'
                                 }`}
                         >
                             Desktop
@@ -231,8 +231,8 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
                         <button
                             onClick={() => setBackgroundTab('gradient')}
                             className={`flex-1 py-2 px-3 text-sm rounded-md transition-colors ${backgroundTab === 'gradient'
-                                    ? 'text-white bg-gray-700'
-                                    : 'text-gray-400 hover:text-white'
+                                ? 'text-white bg-gray-700'
+                                : 'text-gray-400 hover:text-white'
                                 }`}
                         >
                             Gradient
@@ -240,8 +240,8 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
                         <button
                             onClick={() => setBackgroundTab('colors')}
                             className={`flex-1 py-2 px-3 text-sm rounded-md transition-colors ${backgroundTab === 'colors'
-                                    ? 'text-white bg-gray-700'
-                                    : 'text-gray-400 hover:text-white'
+                                ? 'text-white bg-gray-700'
+                                : 'text-gray-400 hover:text-white'
                                 }`}
                         >
                             Colors
@@ -282,8 +282,8 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
                                 key={i}
                                 onClick={() => updateAdjustment('background', bg)}
                                 className={`aspect-square rounded-lg border cursor-pointer transition-all ${JSON.stringify(imageAdjustments.background) === JSON.stringify(bg)
-                                        ? 'border-blue-500 ring-2 ring-blue-500/50'
-                                        : 'border-gray-600 hover:border-gray-500'
+                                    ? 'border-blue-500 ring-2 ring-blue-500/50'
+                                    : 'border-gray-600 hover:border-gray-500'
                                     }`}
                                 style={getBackgroundPreview(bg)}
                             />
@@ -393,22 +393,41 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
                             />
                         </div>
 
-                        {/* Balance Image Toggle */}
+                        {/* Inset */}
+                        <div className="space-y-2">
+                            <div className="flex justify-between items-center">
+                                <label className="text-gray-300 text-sm">📐 Inset</label>
+                                <span className="text-gray-400 text-sm">{imageAdjustments.inset}px</span>
+                            </div>
+                            <input
+                                type="range"
+                                min="0"
+                                max="100"
+                                value={imageAdjustments.inset}
+                                onChange={(e) => updateAdjustment('inset', Number(e.target.value))}
+                                className="w-full accent-blue-500"
+                            />
+                        </div>
+
+                        {/* Inset Balance Toggle */}
                         <div className="flex items-center justify-between">
-                            <label className="text-gray-300 text-sm">⚖️ Balance Image</label>
+                            <label className="text-gray-300 text-sm">⚖️ Auto Balance Inset</label>
                             <button
-                                onClick={() => updateAdjustment('balanceImage', !imageAdjustments.balanceImage)}
+                                onClick={() => updateAdjustment('insetBalance', !imageAdjustments.insetBalance)}
                                 className={`
                             w-12 h-6 rounded-full transition-colors duration-200
-                            ${imageAdjustments.balanceImage ? 'bg-blue-500' : 'bg-gray-600'}
+                            ${imageAdjustments.insetBalance ? 'bg-blue-500' : 'bg-gray-600'}
                         `}
                             >
                                 <div className={`
                             w-5 h-5 bg-white rounded-full transition-transform duration-200
-                            ${imageAdjustments.balanceImage ? 'translate-x-6' : 'translate-x-0.5'}
+                            ${imageAdjustments.insetBalance ? 'translate-x-6' : 'translate-x-0.5'}
                         `} />
                             </button>
                         </div>
+
+
+
                     </div>
                 </div>
             </div>
