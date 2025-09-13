@@ -450,10 +450,10 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                                     width={stageSize.width - (imageAdjustments.padding * 2)}
                                     height={stageSize.height - (imageAdjustments.padding * 2)}
                                     cornerRadius={imageAdjustments.rounded}
-                                    shadowColor="rgba(0, 0, 0, 0.5)"
+                                    shadowColor="rgba(0, 0, 0, 1)"
                                     shadowBlur={imageAdjustments.shadow}
-                                    shadowOffset={{ x: imageAdjustments.shadow / 4, y: imageAdjustments.shadow / 4 }}
-                                    shadowOpacity={imageAdjustments.shadow > 0 ? 0.5 : 0}
+                                    shadowOffset={{ x: imageAdjustments.shadow / 2, y: imageAdjustments.shadow / 2 }}
+                                    shadowOpacity={imageAdjustments.shadow > 0 ? 1 : 0}
                                 />
                             )}
                             

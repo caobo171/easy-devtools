@@ -26,13 +26,13 @@ export const useScreenshotState = (initialImage?: string | null) => {
         contrast: 1,
         saturation: 1,
         blur: 0,
-        padding: 0,
-        rounded: 0,
-        shadow: 0,
+        padding: 60,
+        rounded: 20,
+        shadow: 20,
         balanceImage: false,
         background: {
-            type: 'solid',
-            color: 'transparent'
+            type: 'image',
+            image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800'
         }
     });
 
