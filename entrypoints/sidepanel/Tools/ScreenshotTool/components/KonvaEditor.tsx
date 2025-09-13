@@ -18,6 +18,8 @@ interface KonvaEditorProps {
     onCurrentAnnotationChange: (annotation: Annotation | null) => void;
     onCropAreaChange: (cropArea: CropArea | null) => void;
     onTextInputRequest: (position: { x: number; y: number }) => void;
+    selectedAnnotation: Annotation | null;
+    onSelectedAnnotationChange: (annotation: Annotation | null) => void;
 }
 
 export const KonvaEditor: React.FC<KonvaEditorProps> = ({
@@ -34,7 +36,9 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
     onAnnotationsChange,
     onCurrentAnnotationChange,
     onCropAreaChange,
-    onTextInputRequest
+    onTextInputRequest,
+    selectedAnnotation,
+    onSelectedAnnotationChange
 }) => {
     const imageRef = useRef<Konva.Image>(null);
     const backgroundImageRef = useRef<Konva.Image>(null);
@@ -44,7 +48,7 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
     const [backgroundImage, setBackgroundImage] = useState<HTMLImageElement | null>(null);
     const [stageSize, setStageSize] = useState({ width: 800, height: 600 });
     const [isDrawing, setIsDrawing] = useState(false);
-    const [selectedId, setSelectedId] = useState<string | null>(null);
+    const [selectedId, setSelectedId] = useState<string | null>(selectedAnnotation?.id || null);
     const [insetColors, setInsetColors] = useState({ top: '#ffffff', right: '#ffffff', bottom: '#ffffff', left: '#ffffff' });
 
     console.log(processedImage)
@@ -133,6 +137,11 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
         }
     }, [imageAdjustments, image]);
 
+    // Sync selectedId with selectedAnnotation prop
+    useEffect(() => {
+        setSelectedId(selectedAnnotation?.id || null);
+    }, [selectedAnnotation]);
+
     // Handle transformer selection
     useEffect(() => {
         if (selectedId && transformerRef.current && stageRef.current) {
@@ -159,12 +168,15 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
             
             if (clickedOnEmpty) {
                 setSelectedId(null);
+                onSelectedAnnotationChange(null);
                 return;
             }
             
             const clickedShape = e.target;
             if (clickedShape.id()) {
+                const clickedAnnotation = annotations.find(ann => ann.id === clickedShape.id());
                 setSelectedId(clickedShape.id());
+                onSelectedAnnotationChange(clickedAnnotation || null);
             }
             return;
         }
@@ -454,13 +466,39 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
     const renderAnnotation = (annotation: Annotation) => {
         const commonProps = {
             id: annotation.id,
-            key: annotation.id,
             stroke: annotation.color,
             strokeWidth: annotation.strokeWidth || 2,
             fill: annotation.type === 'highlight' ? annotation.color : 'transparent',
             opacity: annotation.type === 'highlight' ? 0.3 : 1,
             draggable: editMode === 'select',
-            onClick: () => editMode === 'select' && setSelectedId(annotation.id),
+            onDragEnd: (e: any) => {
+                if (editMode === 'select') {
+                    const node = e.target;
+                    const updatedAnnotations = annotations.map(ann => {
+                        if (ann.id === annotation.id) {
+                            return {
+                                ...ann,
+                                x: node.x(),
+                                y: node.y()
+                            };
+                        }
+                        return ann;
+                    });
+                    onAnnotationsChange(updatedAnnotations);
+                    
+                    // Update selected annotation
+                    const updatedSelectedAnnotation = updatedAnnotations.find(ann => ann.id === annotation.id);
+                    if (updatedSelectedAnnotation) {
+                        onSelectedAnnotationChange(updatedSelectedAnnotation);
+                    }
+                }
+            },
+            onClick: () => {
+                if (editMode === 'select') {
+                    setSelectedId(annotation.id);
+                    onSelectedAnnotationChange(annotation);
+                }
+            },
 
         };
 
@@ -471,6 +509,7 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                 return (
                     <Rect
                         {...commonProps}
+                        key={annotation.id}
                         x={annotation.x}
                         y={annotation.y}
                         width={annotation.width || 0}
@@ -487,6 +526,7 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                 return (
                     <Circle
                         {...commonProps}
+                        key={annotation.id}
                         x={annotation.x + (annotation.width || 0) / 2}
                         y={annotation.y + (annotation.height || 0) / 2}
                         radius={radius}
@@ -496,6 +536,7 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                 return (
                     <Arrow
                         {...commonProps}
+                        key={annotation.id}
                         points={[
                             annotation.x,
                             annotation.y,
@@ -509,6 +550,7 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
             case 'text':
                 return (
                     <Text
+                        key={annotation.id}
                         {...commonProps}
                         x={annotation.x}
                         y={annotation.y}
@@ -524,7 +566,7 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
 
     if (!capturedImage) {
         return (
-            <div className="flex-1 flex items-center justify-center bg-gray-800 rounded-lg border-2 border-dashed border-gray-600">
+            <div className="flex-1 flex items-center justify-cente rounded-lg border-2 border-dashed">
                 <div className="text-center p-12">
                     <div className="text-6xl mb-4">📷</div>
                     <h3 className="text-white text-xl font-semibold mb-2">Drag and drop a photo here,</h3>
@@ -535,8 +577,11 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
         );
     }
 
+
+    console.log('annotations', annotations);
+
     return (
-        <div className="flex-1 bg-gray-800 rounded-lg overflow-hidden relative">
+        <div className="flex-1 rounded-lg overflow-hidden relative">
             <div className="w-full h-full flex items-center justify-center p-4">
                 <div 
                     className="relative rounded-lg overflow-hidden shadow-2xl"
@@ -613,8 +658,8 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                             {/* Render all annotations */}
                             {annotations.map(renderAnnotation)}
                             
-                            {/* Render current annotation being drawn */}
-                            {currentAnnotation && renderAnnotation(currentAnnotation)}
+                            {/* Render current annotation being drawn (only if not in annotations array) */}
+                            {currentAnnotation && !annotations.find(ann => ann.id === currentAnnotation.id) && renderAnnotation(currentAnnotation)}
                             
                             {/* Crop area */}
                             {cropArea && editMode === 'crop' && (
@@ -652,6 +697,44 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                                         'bottom-center',
                                         'bottom-right'
                                     ]}
+                                    onTransformEnd={() => {
+                                        // Update annotation position/size after transformation
+                                        if (selectedId && stageRef.current) {
+                                            const selectedNode = stageRef.current.findOne(`#${selectedId}`);
+                                            if (selectedNode) {
+                                                const updatedAnnotations = annotations.map(ann => {
+                                                    if (ann.id === selectedId) {
+                                                        const scaleX = selectedNode.scaleX();
+                                                        const scaleY = selectedNode.scaleY();
+                                                        
+                                                        // Apply scale to dimensions and reset scale
+                                                        const newWidth = (ann.width || 0) * scaleX;
+                                                        const newHeight = (ann.height || 0) * scaleY;
+                                                        
+                                                        // Reset scale on the node
+                                                        selectedNode.scaleX(1);
+                                                        selectedNode.scaleY(1);
+                                                        
+                                                        return {
+                                                            ...ann,
+                                                            x: selectedNode.x(),
+                                                            y: selectedNode.y(),
+                                                            width: newWidth,
+                                                            height: newHeight
+                                                        };
+                                                    }
+                                                    return ann;
+                                                });
+                                                onAnnotationsChange(updatedAnnotations);
+                                                
+                                                // Update selected annotation
+                                                const updatedSelectedAnnotation = updatedAnnotations.find(ann => ann.id === selectedId);
+                                                if (updatedSelectedAnnotation) {
+                                                    onSelectedAnnotationChange(updatedSelectedAnnotation);
+                                                }
+                                            }
+                                        }
+                                    }}
                                 />
                             )}
                         </Layer>
@@ -661,3 +744,4 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
         </div>
     );
 };
+
