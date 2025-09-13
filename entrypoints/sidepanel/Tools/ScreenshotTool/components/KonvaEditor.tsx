@@ -37,65 +37,120 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
     onTextInputRequest
 }) => {
     const imageRef = useRef<Konva.Image>(null);
+    const backgroundImageRef = useRef<Konva.Image>(null);
     const transformerRef = useRef<Konva.Transformer>(null);
     const [image, setImage] = useState<HTMLImageElement | null>(null);
+    const [backgroundImage, setBackgroundImage] = useState<HTMLImageElement | null>(null);
     const [stageSize, setStageSize] = useState({ width: 800, height: 600 });
-    const [selectedId, setSelectedId] = useState<string | null>(null);
     const [isDrawing, setIsDrawing] = useState(false);
+    const [selectedId, setSelectedId] = useState<string | null>(null);
 
-    // Load image
+    // Load image and calculate stage size including padding
     useEffect(() => {
         if (capturedImage) {
             const img = new window.Image();
             img.crossOrigin = 'anonymous';
             img.onload = () => {
                 setImage(img);
-                // Calculate stage size based on image aspect ratio
-                const maxWidth = 800;
-                const maxHeight = 600;
+                // Calculate image size based on available space (excluding padding)
+                const maxWidth = 800 - (imageAdjustments.padding * 2);
+                const maxHeight = 600 - (imageAdjustments.padding * 2);
                 const aspectRatio = img.width / img.height;
                 
-                let width = maxWidth;
-                let height = maxWidth / aspectRatio;
+                let imageWidth = maxWidth;
+                let imageHeight = maxWidth / aspectRatio;
                 
-                if (height > maxHeight) {
-                    height = maxHeight;
-                    width = maxHeight * aspectRatio;
+                if (imageHeight > maxHeight) {
+                    imageHeight = maxHeight;
+                    imageWidth = maxHeight * aspectRatio;
                 }
                 
-                setStageSize({ width, height });
+                // Stage size includes padding for background area
+                setStageSize({ 
+                    width: imageWidth + (imageAdjustments.padding * 2), 
+                    height: imageHeight + (imageAdjustments.padding * 2) 
+                });
             };
             img.src = capturedImage;
         }
-    }, [capturedImage]);
+    }, [capturedImage, imageAdjustments.padding]);
+
+    // Load background image when background changes
+    useEffect(() => {
+        if (imageAdjustments.background.type === 'image' && imageAdjustments.background.image) {
+            const img = new window.Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => {
+                setBackgroundImage(img);
+            };
+            img.src = imageAdjustments.background.image;
+        } else {
+            setBackgroundImage(null);
+        }
+    }, [imageAdjustments.background]);
+
+    // Apply blur filter to background image when blur adjustment changes
+    useEffect(() => {
+        if (backgroundImageRef.current && backgroundImage && imageAdjustments.blur > 0) {
+            const konvaBackgroundImage = backgroundImageRef.current;
+            konvaBackgroundImage.cache();
+            konvaBackgroundImage.getLayer()?.batchDraw();
+        }
+    }, [imageAdjustments.blur, backgroundImage]);
+
+    // Apply filters to image when adjustments change
+    useEffect(() => {
+        if (imageRef.current && image) {
+            const konvaImage = imageRef.current;
+            
+            // Apply Konva filters (excluding blur - that's for background only)
+            konvaImage.filters([
+                Konva.Filters.Brighten,
+                Konva.Filters.Contrast
+            ]);
+            
+            // Set filter values
+            konvaImage.brightness(imageAdjustments.brightness - 1); // Konva expects -1 to 1 range
+            konvaImage.contrast(imageAdjustments.contrast - 1); // Konva expects -100 to 100 range, but we'll use -1 to 1
+            
+            konvaImage.cache();
+            konvaImage.getLayer()?.batchDraw();
+        }
+    }, [imageAdjustments, image]);
 
     // Handle transformer selection
     useEffect(() => {
-        if (selectedId && transformerRef.current) {
-            const stage = stageRef.current;
-            if (stage) {
-                const selectedNode = stage.findOne(`#${selectedId}`);
-                if (selectedNode) {
-                    transformerRef.current.nodes([selectedNode]);
-                    transformerRef.current.getLayer()?.batchDraw();
-                }
+        if (selectedId && transformerRef.current && stageRef.current) {
+            const selectedNode = stageRef.current.findOne(`#${selectedId}`);
+            if (selectedNode) {
+                transformerRef.current.nodes([selectedNode]);
+                transformerRef.current.getLayer()?.batchDraw();
             }
         } else if (transformerRef.current) {
             transformerRef.current.nodes([]);
             transformerRef.current.getLayer()?.batchDraw();
         }
-    }, [selectedId]);
+    }, [selectedId, annotations]); // Re-run when annotations change to maintain selection
 
     const handleStageMouseDown = (e: Konva.KonvaEventObject<MouseEvent>) => {
         if (editMode === 'select') {
             const clickedOnEmpty = e.target === e.target.getStage();
+            const clickedOnTransformer = e.target.getParent()?.className === 'Transformer';
+            
+            // Don't clear selection if clicking on transformer handles
+            if (clickedOnTransformer) {
+                return;
+            }
+            
             if (clickedOnEmpty) {
                 setSelectedId(null);
                 return;
             }
             
             const clickedShape = e.target;
-            setSelectedId(clickedShape.id());
+            if (clickedShape.id()) {
+                setSelectedId(clickedShape.id());
+            }
             return;
         }
 
@@ -212,7 +267,8 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
             fill: annotation.type === 'highlight' ? annotation.color : 'transparent',
             opacity: annotation.type === 'highlight' ? 0.3 : 1,
             draggable: editMode === 'select',
-            onClick: () => editMode === 'select' && setSelectedId(annotation.id)
+            onClick: () => editMode === 'select' && setSelectedId(annotation.id),
+
         };
 
         switch (annotation.type) {
@@ -291,18 +347,7 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
             <div className="w-full h-full flex items-center justify-center p-4">
                 <div 
                     className="relative rounded-lg overflow-hidden shadow-2xl"
-                    style={{
-                        padding: `${imageAdjustments.padding}px`,
-                        filter: `
-                            brightness(${imageAdjustments.brightness})
-                            contrast(${imageAdjustments.contrast})
-                            blur(${imageAdjustments.blur}px)
-                        `,
-                        borderRadius: `${imageAdjustments.rounded}px`,
-                        boxShadow: imageAdjustments.shadow > 0 
-                            ? `0 ${imageAdjustments.shadow}px ${imageAdjustments.shadow * 2}px rgba(0,0,0,0.3)`
-                            : 'none'
-                    }}
+
                 >
                     <Stage
                         ref={stageRef}
@@ -312,17 +357,103 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                         onMousemove={handleStageMouseMove}
                         onMouseup={handleStageMouseUp}
                         style={{
-                            borderRadius: `${imageAdjustments.rounded}px`,
                             cursor: editMode === 'select' ? 'default' : 'crosshair'
                         }}
                     >
                         <Layer>
+                            {/* Background layer */}
+                            {imageAdjustments.background.type === 'image' && backgroundImage ? (
+                                <KonvaImage
+                                    ref={backgroundImageRef}
+                                    image={backgroundImage}
+                                    x={0}
+                                    y={0}
+                                    width={stageSize.width}
+                                    height={stageSize.height}
+                                    filters={[Konva.Filters.Blur]}
+                                    blurRadius={imageAdjustments.blur}
+                                />
+                            ) : (
+                                <Rect
+                                    x={0}
+                                    y={0}
+                                    width={stageSize.width}
+                                    height={stageSize.height}
+                                    fill={imageAdjustments.background.type === 'solid' 
+                                        ? imageAdjustments.background.color || 'transparent'
+                                        : 'transparent'
+                                    }
+                                    fillLinearGradientStartPoint={
+                                        imageAdjustments.background.type === 'gradient' && 
+                                        imageAdjustments.background.gradient?.type === 'linear'
+                                            ? { x: 0, y: 0 }
+                                            : undefined
+                                    }
+                                    fillLinearGradientEndPoint={
+                                        imageAdjustments.background.type === 'gradient' && 
+                                        imageAdjustments.background.gradient?.type === 'linear'
+                                            ? { 
+                                                x: Math.cos((imageAdjustments.background.gradient.direction || 45) * Math.PI / 180) * stageSize.width,
+                                                y: Math.sin((imageAdjustments.background.gradient.direction || 45) * Math.PI / 180) * stageSize.height
+                                            }
+                                            : undefined
+                                    }
+                                    fillLinearGradientColorStops={
+                                        imageAdjustments.background.type === 'gradient' && 
+                                        imageAdjustments.background.gradient?.type === 'linear'
+                                            ? imageAdjustments.background.gradient.colors.flatMap((color, index) => [
+                                                index / (imageAdjustments.background.gradient!.colors.length - 1), color
+                                            ])
+                                            : undefined
+                                    }
+                                    fillRadialGradientStartPoint={
+                                        imageAdjustments.background.type === 'gradient' && 
+                                        imageAdjustments.background.gradient?.type === 'radial'
+                                            ? { x: stageSize.width / 2, y: stageSize.height / 2 }
+                                            : undefined
+                                    }
+                                    fillRadialGradientEndPoint={
+                                        imageAdjustments.background.type === 'gradient' && 
+                                        imageAdjustments.background.gradient?.type === 'radial'
+                                            ? { x: stageSize.width / 2, y: stageSize.height / 2 }
+                                            : undefined
+                                    }
+                                    fillRadialGradientStartRadius={
+                                        imageAdjustments.background.type === 'gradient' && 
+                                        imageAdjustments.background.gradient?.type === 'radial'
+                                            ? 0
+                                            : undefined
+                                    }
+                                    fillRadialGradientEndRadius={
+                                        imageAdjustments.background.type === 'gradient' && 
+                                        imageAdjustments.background.gradient?.type === 'radial'
+                                            ? Math.max(stageSize.width, stageSize.height) / 2
+                                            : undefined
+                                    }
+                                    fillRadialGradientColorStops={
+                                        imageAdjustments.background.type === 'gradient' && 
+                                        imageAdjustments.background.gradient?.type === 'radial'
+                                            ? imageAdjustments.background.gradient.colors.flatMap((color, index) => [
+                                                index / (imageAdjustments.background.gradient!.colors.length - 1), color
+                                            ])
+                                            : undefined
+                                    }
+                                />
+                            )}
+                            
                             {image && (
                                 <KonvaImage
                                     ref={imageRef}
                                     image={image}
-                                    width={stageSize.width}
-                                    height={stageSize.height}
+                                    x={imageAdjustments.padding}
+                                    y={imageAdjustments.padding}
+                                    width={stageSize.width - (imageAdjustments.padding * 2)}
+                                    height={stageSize.height - (imageAdjustments.padding * 2)}
+                                    cornerRadius={imageAdjustments.rounded}
+                                    shadowColor="rgba(0, 0, 0, 0.5)"
+                                    shadowBlur={imageAdjustments.shadow}
+                                    shadowOffset={{ x: imageAdjustments.shadow / 4, y: imageAdjustments.shadow / 4 }}
+                                    shadowOpacity={imageAdjustments.shadow > 0 ? 0.5 : 0}
                                 />
                             )}
                             
@@ -357,6 +488,17 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                                         }
                                         return newBox;
                                     }}
+                                    keepRatio={false}
+                                    enabledAnchors={[
+                                        'top-left',
+                                        'top-center',
+                                        'top-right',
+                                        'middle-right',
+                                        'middle-left',
+                                        'bottom-left',
+                                        'bottom-center',
+                                        'bottom-right'
+                                    ]}
                                 />
                             )}
                         </Layer>

@@ -29,7 +29,11 @@ export const useScreenshotState = (initialImage?: string | null) => {
         padding: 0,
         rounded: 0,
         shadow: 0,
-        balanceImage: false
+        balanceImage: false,
+        background: {
+            type: 'solid',
+            color: 'transparent'
+        }
     });
 
     const stageRef = useRef<Konva.Stage>(null);
@@ -89,7 +93,11 @@ export const useScreenshotState = (initialImage?: string | null) => {
             padding: 0,
             rounded: 0,
             shadow: 0,
-            balanceImage: false
+            balanceImage: false,
+            background: {
+                type: 'solid',
+                color: 'transparent'
+            }
         });
     };
 

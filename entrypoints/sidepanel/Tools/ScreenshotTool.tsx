@@ -54,11 +54,16 @@ export default function ScreenshotTool({ initialImage }: ScreenshotToolProps) {
     };
 
     const copyToClipboard = async () => {
-        if (!state.capturedImage) return;
+        if (!state.capturedImage || !state.stageRef.current) return;
 
         try {
-            const response = await fetch(state.capturedImage);
+            const stage = state.stageRef.current;
+            const dataURL = stage.toDataURL({ pixelRatio: 2 });
+            
+            // Convert dataURL to blob
+            const response = await fetch(dataURL);
             const blob = await response.blob();
+            
             await navigator.clipboard.write([
                 new ClipboardItem({ 'image/png': blob })
             ]);

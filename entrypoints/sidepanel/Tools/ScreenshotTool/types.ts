@@ -24,6 +24,17 @@ export interface Annotation {
 
 export type EditMode = 'crop' | 'text' | 'arrow' | 'rectangle' | 'circle' | 'blur' | 'highlight' | 'pen' | 'select' | null;
 
+export interface BackgroundStyle {
+    type: 'solid' | 'gradient' | 'image';
+    color?: string;
+    gradient?: {
+        type: 'linear' | 'radial';
+        colors: string[];
+        direction?: number;
+    };
+    image?: string;
+}
+
 export interface ImageAdjustments {
     brightness: number;
     contrast: number;
@@ -33,6 +44,7 @@ export interface ImageAdjustments {
     rounded: number;
     shadow: number;
     balanceImage: boolean;
+    background: BackgroundStyle;
 }
 
 export interface ScreenshotToolProps {
