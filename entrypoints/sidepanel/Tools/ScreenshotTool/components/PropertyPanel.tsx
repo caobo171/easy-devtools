@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { EditMode, ImageAdjustments, BackgroundStyle, Annotation } from '../types';
+import { EditMode, ImageAdjustments, BackgroundStyle } from '../types';
 
 interface PropertyPanelProps {
     editMode: EditMode;
@@ -15,9 +15,6 @@ interface PropertyPanelProps {
     onUndo: () => void;
     onClearAll: () => void;
     hasAnnotations: boolean;
-    selectedAnnotation: Annotation | null;
-    onUpdateAnnotation: (annotation: Annotation) => void;
-    onRemoveSelectedAnnotation: () => void;
 }
 
 const colorPresets = [
@@ -38,10 +35,7 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
     setImageAdjustments,
     onUndo,
     onClearAll,
-    hasAnnotations,
-    selectedAnnotation,
-    onUpdateAnnotation,
-    onRemoveSelectedAnnotation
+    hasAnnotations
 }) => {
     const [backgroundTab, setBackgroundTab] = useState<'desktop' | 'gradient' | 'colors'>('desktop');
     const [unsplashImages, setUnsplashImages] = useState<any[]>([]);
@@ -51,47 +45,6 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
     const updateAdjustment = (key: keyof ImageAdjustments, value: number | boolean | BackgroundStyle) => {
         setImageAdjustments({ ...imageAdjustments, [key]: value });
     };
-
-    // Get effective values for the property panel
-    const getEffectiveColor = () => selectedAnnotation?.color || selectedColor;
-    const getEffectiveFontSize = () => selectedAnnotation?.fontSize || fontSize;
-    const getEffectiveStrokeWidth = () => selectedAnnotation?.strokeWidth || strokeWidth;
-
-    // Update annotation property
-    const updateAnnotationProperty = (key: keyof Annotation, value: any) => {
-        if (selectedAnnotation) {
-            onUpdateAnnotation({ ...selectedAnnotation, [key]: value });
-        }
-    };
-
-    // Update global property or annotation property
-    const updateColorProperty = (color: string) => {
-        if (selectedAnnotation) {
-            updateAnnotationProperty('color', color);
-        } else {
-            setSelectedColor(color);
-        }
-    };
-
-    const updateFontSizeProperty = (size: number) => {
-        if (selectedAnnotation) {
-            updateAnnotationProperty('fontSize', size);
-        } else {
-            setFontSize(size);
-        }
-    };
-
-    const updateStrokeWidthProperty = (width: number) => {
-        if (selectedAnnotation) {
-            updateAnnotationProperty('strokeWidth', width);
-        } else {
-            setStrokeWidth(width);
-        }
-    };
-
-    // Determine if we should show annotation properties
-    const showAnnotationProperties = selectedAnnotation || editMode;
-    const annotationType = selectedAnnotation?.type || editMode;
 
     // Fetch Unsplash images
     const fetchUnsplashImages = async (query: string = 'nature') => {
@@ -166,9 +119,7 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
             {/* Styles Header - Fixed */}
             <div className="flex-shrink-0 p-4 border-b border-gray-700">
                 <div className="flex items-center justify-between">
-                    <h3 className="text-white font-semibold text-lg">
-                        {selectedAnnotation ? '✏️ Edit Annotation' : '🎨 Styles'}
-                    </h3>
+                    <h3 className="text-white font-semibold text-lg">🎨 Styles</h3>
                     <div className="flex gap-1">
                         <Button
                             onClick={onUndo}
@@ -180,26 +131,15 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
                         >
                             ↶
                         </Button>
-                        {selectedAnnotation && (
-                            <Button
-                                onClick={onRemoveSelectedAnnotation}
-                                size="sm"
-                                variant="ghost"
-                                className="text-red-400 hover:text-red-300 p-1 h-8 w-8"
-                                title="Remove selected annotation"
-                            >
-                                ❌
-                            </Button>
-                        )}
                         <Button
                             onClick={onClearAll}
                             disabled={!hasAnnotations}
                             size="sm"
                             variant="ghost"
                             className="text-gray-400 hover:text-white p-1 h-8 w-8"
-                            title="Reset all annotations"
+                            title="Clear all annotations"
                         >
-                            🔄
+                            🗑️
                         </Button>
                     </div>
                 </div>
@@ -209,40 +149,38 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
             <div className="flex-1 overflow-y-auto p-4 space-y-6">
 
                 {/* Color Picker */}
-                {showAnnotationProperties && (
-                    <div className="space-y-3">
-                        <div className="flex items-center gap-2">
-                            <span className="text-gray-300 text-sm font-medium">Color</span>
-                            <input
-                                type="color"
-                                value={getEffectiveColor()}
-                                onChange={(e) => updateColorProperty(e.target.value)}
-                                className="w-8 h-8 rounded border-2 border-gray-600 bg-transparent cursor-pointer"
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-5 gap-2">
-                            {colorPresets.map((color) => (
-                                <button
-                                    key={color}
-                                    onClick={() => updateColorProperty(color)}
-                                    className={`
-                                    w-8 h-8 rounded border-2 transition-all duration-200
-                                    ${getEffectiveColor() === color
-                                            ? 'border-blue-400 scale-110'
-                                            : 'border-gray-600 hover:border-gray-400'
-                                        }
-                                `}
-                                    style={{ backgroundColor: color }}
-                                    title={color}
-                                />
-                            ))}
-                        </div>
+                <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                        <span className="text-gray-300 text-sm font-medium">Color</span>
+                        <input
+                            type="color"
+                            value={selectedColor}
+                            onChange={(e) => setSelectedColor(e.target.value)}
+                            className="w-8 h-8 rounded border-2 border-gray-600 bg-transparent cursor-pointer"
+                        />
                     </div>
-                )}
+
+                    <div className="grid grid-cols-5 gap-2">
+                        {colorPresets.map((color) => (
+                            <button
+                                key={color}
+                                onClick={() => setSelectedColor(color)}
+                                className={`
+                                w-8 h-8 rounded border-2 transition-all duration-200
+                                ${selectedColor === color
+                                        ? 'border-blue-400 scale-110'
+                                        : 'border-gray-600 hover:border-gray-400'
+                                    }
+                            `}
+                                style={{ backgroundColor: color }}
+                                title={color}
+                            />
+                        ))}
+                    </div>
+                </div>
 
                 {/* Tool-specific Properties */}
-                {(annotationType === 'text') && (
+                {(editMode === 'text') && (
                     <div className="space-y-3">
                         <label className="text-gray-300 text-sm font-medium">Font Size</label>
                         <div className="space-y-2">
@@ -250,16 +188,16 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
                                 type="range"
                                 min="12"
                                 max="72"
-                                value={getEffectiveFontSize()}
-                                onChange={(e) => updateFontSizeProperty(Number(e.target.value))}
+                                value={fontSize}
+                                onChange={(e) => setFontSize(Number(e.target.value))}
                                 className="w-full accent-blue-500"
                             />
-                            <div className="text-gray-400 text-sm">{getEffectiveFontSize()}px</div>
+                            <div className="text-gray-400 text-sm">{fontSize}px</div>
                         </div>
                     </div>
                 )}
 
-                {(annotationType === 'arrow' || annotationType === 'rectangle' || annotationType === 'circle' || annotationType === 'pen') && (
+                {(editMode === 'arrow' || editMode === 'rectangle' || editMode === 'circle' || editMode === 'pen') && (
                     <div className="space-y-3">
                         <label className="text-gray-300 text-sm font-medium">Stroke Width</label>
                         <div className="space-y-2">
@@ -267,11 +205,11 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
                                 type="range"
                                 min="1"
                                 max="10"
-                                value={getEffectiveStrokeWidth()}
-                                onChange={(e) => updateStrokeWidthProperty(Number(e.target.value))}
+                                value={strokeWidth}
+                                onChange={(e) => setStrokeWidth(Number(e.target.value))}
                                 className="w-full accent-blue-500"
                             />
-                            <div className="text-gray-400 text-sm">{getEffectiveStrokeWidth()}px</div>
+                            <div className="text-gray-400 text-sm">{strokeWidth}px</div>
                         </div>
                     </div>
                 )}

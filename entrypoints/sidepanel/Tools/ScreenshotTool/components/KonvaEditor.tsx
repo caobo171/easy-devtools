@@ -51,7 +51,6 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
     const [selectedId, setSelectedId] = useState<string | null>(selectedAnnotation?.id || null);
     const [insetColors, setInsetColors] = useState({ top: '#ffffff', right: '#ffffff', bottom: '#ffffff', left: '#ffffff' });
 
-    console.log(processedImage)
 
     // Load image and calculate stage size including padding
     useEffect(() => {
@@ -395,8 +394,6 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
             if (avgRightDiff > 30) rightCropPixels = i + 1;
         }
 
-        console.log('Auto-balance crop:', { top: topCropPixels, bottom: bottomCropPixels, left: leftCropPixels, right: rightCropPixels });
-
         const cropArea = {
             x: leftCropPixels,
             y: topCropPixels,
@@ -408,13 +405,13 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
     };
 
     const handleStageMouseMove = (e: Konva.KonvaEventObject<MouseEvent>) => {
-        if (!isDrawing || editMode === 'select') return;
-
         const stage = stageRef.current;
         if (!stage) return;
 
         const pos = stage.getPointerPosition();
         if (!pos) return;
+
+        if (!isDrawing || editMode === 'select') return;
 
         if (editMode === 'crop' && cropArea) {
             onCropAreaChange({
@@ -471,15 +468,25 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
             fill: annotation.type === 'highlight' ? annotation.color : 'transparent',
             opacity: annotation.type === 'highlight' ? 0.3 : 1,
             draggable: editMode === 'select',
+            onDragMove:(e:any) => {
+                const node = e.target;
+                    const nodePosition = node.position();
+
+                    console.log('nodePosition dragmove', nodePosition);
+            },
             onDragEnd: (e: any) => {
                 if (editMode === 'select') {
                     const node = e.target;
+                    const nodePosition = node.position();
+
+                    console.log('nodePosition', nodePosition);
+                    
                     const updatedAnnotations = annotations.map(ann => {
                         if (ann.id === annotation.id) {
                             return {
                                 ...ann,
-                                x: node.x(),
-                                y: node.y()
+                                x: nodePosition.x,
+                                y: nodePosition.y
                             };
                         }
                         return ann;
@@ -578,7 +585,14 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
     }
 
 
-    console.log('annotations', annotations);
+    console.log('annotations', annotations.map(e => {
+        return {
+            x:e.x,
+            y:e.y,
+            width:e.width,
+            height:e.height
+        }
+    }));
 
     return (
         <div className="flex-1 rounded-lg overflow-hidden relative">
