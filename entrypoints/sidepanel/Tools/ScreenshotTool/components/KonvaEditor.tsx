@@ -140,6 +140,7 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
         if (selectedAnnotationId && transformerRef.current && stageRef.current) {
             const selectedNode = stageRef.current.findOne(`#${selectedAnnotationId}`);
             if (selectedNode) {
+                console.log('Selected node again:', selectedNode);
                 transformerRef.current.nodes([selectedNode]);
                 transformerRef.current.getLayer()?.batchDraw();
             }
@@ -470,9 +471,9 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
             strokeWidth: annotation.strokeWidth || 2,
             fill: annotation.type === 'highlight' ? annotation.color : 'transparent',
             opacity: annotation.type === 'highlight' ? 0.3 : 1,
-            draggable: editMode === 'select' || annotation.id === selectedAnnotationId,
+            draggable: true,
             onDragEnd: (e: any) => {
-                if (editMode === 'select' || annotation.id === selectedAnnotationId) {
+                if (annotation.id === selectedAnnotationId) {
                     const node = e.target;
                     const updatedAnnotations = annotations.map(ann => {
                         if (ann.id === annotation.id) {
