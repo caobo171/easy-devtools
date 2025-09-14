@@ -473,10 +473,31 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                     const node = e.target;
                     const updatedAnnotations = annotations.map(ann => {
                         if (ann.id === annotation.id) {
+                            // For circles, we need to adjust the position since the circle is rendered at center
+                            // but we store the top-left corner position
+                            let newX = node.x();
+                            let newY = node.y();
+                            
+                            if (annotation.type === 'circle') {
+                                newX = node.x() - (annotation.width || 0) / 2;
+                                newY = node.y() - (annotation.height || 0) / 2;
+                            } else if (annotation.type === 'arrow') {
+                                // For arrows, get the actual points from the dragged node
+                                const points = node.points();
+                                
+                                return {
+                                    ...ann,
+                                    x: points[0],
+                                    y: points[1],
+                                    endX: points[2],
+                                    endY: points[3],
+                                };
+                            }
+                            
                             return {
                                 ...ann,
-                                x: node.x(),
-                                y: node.y()
+                                x: newX,
+                                y: newY,
                             };
                         }
                         return ann;
@@ -496,7 +517,6 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                     onSelectedAnnotationChange(annotation);
                 }
             },
-
         };
 
         switch (annotation.type) {
@@ -509,6 +529,8 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                         key={annotation.id}
                         x={annotation.x}
                         y={annotation.y}
+                        scaleX={annotation.scaleX || 1}
+                        scaleY={annotation.scaleY || 1}
                         width={annotation.width || 0}
                         height={annotation.height || 0}
                         fill={annotation.type === 'highlight' ? annotation.color : 
@@ -527,6 +549,8 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                         x={annotation.x + (annotation.width || 0) / 2}
                         y={annotation.y + (annotation.height || 0) / 2}
                         radius={radius}
+                        scaleX={annotation.scaleX || 1}
+                        scaleY={annotation.scaleY || 1}
                     />
                 );
             case 'arrow':
@@ -540,6 +564,8 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                             annotation.endX || annotation.x,
                             annotation.endY || annotation.y
                         ]}
+                        scaleX={annotation.scaleX || 1}
+                        scaleY={annotation.scaleY || 1}
                         pointerLength={10}
                         pointerWidth={10}
                     />
@@ -705,20 +731,41 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                                                         const scaleY = selectedNode.scaleY();
                                                         
                                                         // Apply scale to dimensions and reset scale
-                                                        const newWidth = (ann.width || 0) * scaleX;
-                                                        const newHeight = (ann.height || 0) * scaleY;
+                                                        const newWidth = (ann.width || 0);
+                                                        const newHeight = (ann.height || 0);
                                                         
-                                                        // Reset scale on the node
-                                                        selectedNode.scaleX(1);
-                                                        selectedNode.scaleY(1);
+
                                                         
-                                                        return {
-                                                            ...ann,
-                                                            x: selectedNode.x(),
-                                                            y: selectedNode.y(),
-                                                            width: newWidth,
-                                                            height: newHeight
-                                                        };
+                                                        // Handle different annotation types for transform
+                                                        if (ann.type === 'circle') {
+                                                            // For circles, adjust position since they're rendered at center
+                                                            return {
+                                                                ...ann,
+                                                                x: selectedNode.x() - newWidth / 2,
+                                                                y: selectedNode.y() - newHeight / 2,
+                                                                scaleX,
+                                                                scaleY,
+                                                            };
+                                                        } else if (ann.type === 'arrow') {
+                                                            // For arrows, get the actual points
+                                                            
+                                                            return {
+                                                                ...ann,
+                                                                scaleX,
+                                                                scaleY,
+                                                            };
+                                                        } else {
+                                                            // For rectangles and other shapes
+                                                            return {
+                                                                ...ann,
+                                                                x: selectedNode.x(),
+                                                                y: selectedNode.y(),
+                                                                width: newWidth,
+                                                                scaleX,
+                                                                scaleY,
+                                                                height: newHeight
+                                                            };
+                                                        }
                                                     }
                                                     return ann;
                                                 });

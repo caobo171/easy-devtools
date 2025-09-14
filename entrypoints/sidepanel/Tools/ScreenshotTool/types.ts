@@ -20,6 +20,8 @@ export interface Annotation {
     strokeWidth?: number;
     selected?: boolean;
     opacity?: number;
+    scaleX?: number;
+    scaleY?: number;
 }
 
 export type EditMode = 'crop' | 'text' | 'arrow' | 'rectangle' | 'circle' | 'blur' | 'highlight' | 'pen' | 'select' | null;
