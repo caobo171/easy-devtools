@@ -23,7 +23,6 @@ export const ScreenshotOverlay: React.FC<ScreenshotOverlayProps> = ({ onCapture,
   const [mode, setMode] = useState<SelectionMode>('selecting');
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
   const [selectionRect, setSelectionRect] = useState<SelectionRect | null>(null);
-  console.log('selection', selectionRect);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [activeHandle, setActiveHandle] = useState<ResizeHandle>(null);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
@@ -110,7 +109,6 @@ export const ScreenshotOverlay: React.FC<ScreenshotOverlayProps> = ({ onCapture,
     const { x, y } = getMousePosition(e);
     if (!selectionRect) return;
 
-    console.log('mousemove', x, y, mode);
 
     // Update cursor based on position
     if (mode === 'complete') {
@@ -141,7 +139,6 @@ export const ScreenshotOverlay: React.FC<ScreenshotOverlayProps> = ({ onCapture,
     }
 
     if (mode === 'selecting') {
-      console.log('selecting', x, y);
       // Update selection rectangle while dragging
       const minX = Math.min(startPos.x, x);
       const minY = Math.min(startPos.y, y);

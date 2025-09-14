@@ -49,9 +49,6 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
     const [stageSize, setStageSize] = useState({ width: 800, height: 600 });
     const [isDrawing, setIsDrawing] = useState(false);
     const [selectedId, setSelectedId] = useState<string | null>(selectedAnnotation?.id || null);
-    const [insetColors, setInsetColors] = useState({ top: '#ffffff', right: '#ffffff', bottom: '#ffffff', left: '#ffffff' });
-
-    console.log(processedImage)
 
     // Load image and calculate stage size including padding
     useEffect(() => {
@@ -656,7 +653,7 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                             )}
                             
                             {/* Render all annotations */}
-                            {annotations.map(renderAnnotation)}
+                            {annotations.map((annotation) => renderAnnotation(annotation))}
                             
                             {/* Render current annotation being drawn (only if not in annotations array) */}
                             {currentAnnotation && !annotations.find(ann => ann.id === currentAnnotation.id) && renderAnnotation(currentAnnotation)}
