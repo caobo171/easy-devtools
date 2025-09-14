@@ -33,7 +33,9 @@ export const useScreenshotState = (initialImage?: string | null) => {
         background: {
             type: 'image',
             image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800'
-        }
+        },
+        insetBalance: false,
+        inset: 0,
     });
 
     const stageRef = useRef<Konva.Stage>(null);
@@ -98,6 +100,9 @@ export const useScreenshotState = (initialImage?: string | null) => {
                 type: 'solid',
                 color: 'transparent'
             }
+            ,
+            insetBalance: false,
+            inset: 0,
         });
     };
 

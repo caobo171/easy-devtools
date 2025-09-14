@@ -1,7 +1,7 @@
 import React from 'react';
 import { browser } from 'wxt/browser';
 import { MessageType, MessageFrom } from '@/entrypoints/types';
-import { ScreenshotToolProps } from './ScreenshotTool/types';
+import { Annotation, ScreenshotToolProps } from './ScreenshotTool/types';
 import { useScreenshotState } from './ScreenshotTool/hooks/useScreenshotState';
 import { ToolBar } from './ScreenshotTool/components/ToolBar';
 import { PropertyPanel } from './ScreenshotTool/components/PropertyPanel';
@@ -13,6 +13,33 @@ export default function ScreenshotTool({ initialImage }: ScreenshotToolProps) {
     // Use the custom hook for state management
     const state = useScreenshotState(initialImage);
 
+    // Get selected annotation from annotations array
+    const selectedAnnotation = state.selectedAnnotationId 
+        ? state.annotations.find(ann => ann.id === state.selectedAnnotationId) || null
+        : null;
+
+    // Handle annotation updates from PropertyPanel
+    const handleAnnotationUpdate = (updatedAnnotation: Annotation) => {
+        const updatedAnnotations = state.annotations.map(ann => 
+            ann.id === updatedAnnotation.id ? updatedAnnotation : ann
+        );
+        state.setAnnotations(updatedAnnotations);
+    };
+
+    // Handle selected annotation changes from KonvaEditor
+    const handleSelectedAnnotationChange = (annotation: Annotation | null) => {
+        state.setSelectedAnnotationId(annotation?.id || null);
+    };
+
+    // Handle removing the selected annotation
+    const handleRemoveSelectedAnnotation = () => {
+        if (selectedAnnotation) {
+            const updatedAnnotations = state.annotations.filter(ann => ann.id !== selectedAnnotation.id);
+            state.setAnnotations(updatedAnnotations);
+            state.setSelectedAnnotationId(null);
+        }
+    };
+
 
     // Action handlers
     const downloadImage = () => {
@@ -20,7 +47,7 @@ export default function ScreenshotTool({ initialImage }: ScreenshotToolProps) {
 
         const stage = state.stageRef.current;
         const dataURL = stage.toDataURL({ pixelRatio: 2 });
-        
+
         const a = document.createElement('a');
         a.href = dataURL;
         a.download = `screenshot-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.png`;
@@ -37,9 +64,9 @@ export default function ScreenshotTool({ initialImage }: ScreenshotToolProps) {
             const newTab = await browser.tabs.create({
                 url: '/media-viewer.html?type=screenshot'
             });
-            
+
             console.log('Opened screenshot editor in new tab:', newTab.id);
-            
+
             try {
                 await browser.runtime.sendMessage({
                     messageType: MessageType.closeSidepanel,
@@ -59,11 +86,11 @@ export default function ScreenshotTool({ initialImage }: ScreenshotToolProps) {
         try {
             const stage = state.stageRef.current;
             const dataURL = stage.toDataURL({ pixelRatio: 2 });
-            
+
             // Convert dataURL to blob
             const response = await fetch(dataURL);
             const blob = await response.blob();
-            
+
             await navigator.clipboard.write([
                 new ClipboardItem({ 'image/png': blob })
             ]);
@@ -161,10 +188,13 @@ export default function ScreenshotTool({ initialImage }: ScreenshotToolProps) {
                         onAnnotationsChange={state.setAnnotations}
                         onCurrentAnnotationChange={state.setCurrentAnnotation}
                         onCropAreaChange={state.setCropArea}
+
                         onTextInputRequest={(position) => {
                             state.setTextPosition(position);
                             state.setShowTextInput(true);
                         }}
+                        selectedAnnotation={selectedAnnotation}
+                        onSelectedAnnotationChange={handleSelectedAnnotationChange}
                     />
                 </div>
 
@@ -184,6 +214,9 @@ export default function ScreenshotTool({ initialImage }: ScreenshotToolProps) {
                             onUndo={state.undoLastAnnotation}
                             onClearAll={state.clearAnnotations}
                             hasAnnotations={state.annotations.length > 0}
+                            selectedAnnotation={selectedAnnotation}
+                            onUpdateAnnotation={handleAnnotationUpdate}
+                            onRemoveSelectedAnnotation={handleRemoveSelectedAnnotation}
                         />
                     </div>
                 )}
