@@ -19,6 +19,7 @@ export enum MessageType {
     takeScreenshot = "TAKE_SCREENSHOT",
     screenshotCaptured = "SCREENSHOT_CAPTURED",
     captureVisibleTab = "CAPTURE_VISIBLE_TAB",
+    openVideoEditor = "OPEN_VIDEO_EDITOR",
 
     convertToReadableDateInSidepanel = "CONVERT_TO_READABLE_DATE_IN_SIDEPANEL",
     convertToReadableDateInContent = "CONVERT_TO_READABLE_DATE_IN_CONTENT",

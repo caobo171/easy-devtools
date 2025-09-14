@@ -14,7 +14,7 @@ import HashGenerator from './Tools/HashGenerator';
 import ColorConverter from './Tools/ColorConverter';
 import MarkdownPreview from './Tools/MarkdownPreview';
 import ScreenshotTool from './Tools/ScreenshotTool';
-import VideoRecordingTool from './Tools/VideoEditingTool';
+import VideoRecordingTool from './Tools/VideoRecordingTool';
 import { ToolStateProvider, useToolState } from '@/lib/toolStateContext';
 import Sidebar, { Tool } from './Sidebar';
 import GenerateFile from './Tools/GenerateFile';

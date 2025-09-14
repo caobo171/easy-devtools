@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { browser } from 'wxt/browser';
 import ScreenshotTool from '../sidepanel/Tools/ScreenshotTool';
-import VideoRecordingTool from '../sidepanel/Tools/VideoEditingTool';
+import VideoRecordingTool from '../sidepanel/Tools/VideoRecordingTool';
 import { Button } from '@/components/ui/button';
 import { ToolStateProvider } from '@/lib/toolStateContext';
 

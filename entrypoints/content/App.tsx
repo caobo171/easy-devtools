@@ -13,14 +13,23 @@ import {convertToReadableDate, DateConversionResult} from "@/lib/dateUtils";
 import {ScreenshotOverlay} from "@/entrypoints/content/ScreenshotOverlay";
 import {DateFormatPopup} from "@/entrypoints/content/DateFormatPopup";
 import {ScreenshotPopup} from "@/entrypoints/content/ScreenshotPopup";
+import {VideoEditingPopup} from "@/entrypoints/content/VideoEditingPopup";
+import {VideoRecordingOverlay} from "@/entrypoints/content/VideoRecordingOverlay";
 import { ToolState } from "@/utils/db";
 
 export default () => {
     const [showScreenshotOverlay, setShowScreenshotOverlay] = useState(false);
     const [showDateFormatPopup, setShowDateFormatPopup] = useState(false);
     const [showScreenshotPopup, setShowScreenshotPopup] = useState(false);
+    const [showVideoEditingPopup, setShowVideoEditingPopup] = useState(false);
+    const [showVideoRecordingOverlay, setShowVideoRecordingOverlay] = useState(false);
+    const [isRecordingOverlayVisible, setIsRecordingOverlayVisible] = useState(true);
+    const [isCurrentlyRecording, setIsCurrentlyRecording] = useState(false);
     const [dateFormatInput, setDateFormatInput] = useState('');
     const [screenshotImageData, setScreenshotImageData] = useState('');
+    const [videoData, setVideoData] = useState<string | null>(null);
+    const [videoType, setVideoType] = useState<'recorded' | 'uploaded'>('recorded');
+    const [videoFileName, setVideoFileName] = useState<string>('');
     const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
     const cardRef = useRef<HTMLDivElement>(null);
     const {i18n} = useTranslation();
@@ -47,10 +56,11 @@ export default () => {
     };
     
     useEffect(() => {
-        // Add keyboard shortcut listener for screenshot
+        // Add keyboard shortcut listeners
         const handleKeyDown = (event: KeyboardEvent) => {
             console.log('Key pressed:', event.key, event.shiftKey, event.metaKey, event.ctrlKey);
-            // Check for Cmd+Shift+6 (Mac) or Ctrl+Shift+6 (Windows/Linux)
+            
+            // Check for Cmd+Shift+6 (Mac) or Ctrl+Shift+6 (Windows/Linux) - Screenshot
             if (event.shiftKey && event.key === '6') {
                 event.preventDefault();
                 const correctModifier = event.metaKey;
@@ -59,6 +69,28 @@ export default () => {
                 if (correctModifier) {
                     event.preventDefault();
                     setShowScreenshotOverlay(true);
+                }
+            }
+            
+            // Check for Cmd+Shift+7 (Mac) or Ctrl+Shift+7 (Windows/Linux) - Video Recording
+            if (event.shiftKey && event.key === '7') {
+                event.preventDefault();
+                const correctModifier = event.metaKey;
+                
+                console.log('Video recording shortcut triggered:', correctModifier);
+                if (correctModifier) {
+                    event.preventDefault();
+                    if (!showVideoRecordingOverlay) {
+                        // Open video recording overlay first
+                        setShowVideoRecordingOverlay(true);
+                        setIsRecordingOverlayVisible(true);
+                        
+                        // Save partial state for the video recording tool
+                        savePartialState('videoRecording', { started: true });
+                    } else if (isCurrentlyRecording) {
+                        // Toggle visibility during recording
+                        setIsRecordingOverlayVisible(!isRecordingOverlayVisible);
+                    }
                 }
             }
         };
@@ -92,6 +124,17 @@ export default () => {
             
             if (message.messageType === MessageType.takeScreenshot) {
                 setShowScreenshotOverlay(true);
+                sendResponse({ success: true });
+                return true;
+            }
+            
+            if (message.messageType === MessageType.openVideoEditor) {
+                // Open video recording overlay first
+                setShowVideoRecordingOverlay(true);
+                
+                // Save partial state for the video recording tool
+                savePartialState('videoRecording', { started: true });
+                
                 sendResponse({ success: true });
                 return true;
             }
@@ -132,6 +175,46 @@ export default () => {
     const handleScreenshotPopupClose = () => {
         setShowScreenshotPopup(false);
     };
+    
+    const handleVideoEditingPopupClose = () => {
+        setShowVideoEditingPopup(false);
+    };
+    
+    const handleVideoRecordingComplete = (videoData: string) => {
+        // Set video data and show editing popup
+        setVideoData(videoData);
+        setVideoType('recorded');
+        setVideoFileName(`screen-recording-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.webm`);
+        setPopupPosition({ 
+            x: window.innerWidth / 2 - 300, 
+            y: window.innerHeight / 2 - 250 
+        });
+        setShowVideoRecordingOverlay(false);
+        setShowVideoEditingPopup(true);
+        
+        // Save partial state for the video editing tool
+        savePartialState('videoRecording', { videoData, completed: true });
+    };
+    
+    const handleVideoRecordingCancel = () => {
+        setShowVideoRecordingOverlay(false);
+        setIsCurrentlyRecording(false);
+        setIsRecordingOverlayVisible(true);
+    };
+    
+    const handleToggleOverlayVisibility = () => {
+        setIsRecordingOverlayVisible(!isRecordingOverlayVisible);
+    };
+    
+    const handleRecordingStateChange = (recording: boolean) => {
+        console.log('handleRecordingStateChange called:', recording);
+        setIsCurrentlyRecording(recording);
+        if (recording) {
+            // Hide overlay when recording starts
+            console.log('Setting overlay visible to false');
+            setIsRecordingOverlayVisible(false);
+        }
+    };
 
     return (
         <div className={theme}>
@@ -156,6 +239,32 @@ export default () => {
                    imageData={screenshotImageData}
                    position={popupPosition}
                    onClose={handleScreenshotPopupClose}
+               />
+           )}
+           
+           {showVideoRecordingOverlay && (
+               <VideoRecordingOverlay
+                   onRecordingComplete={handleVideoRecordingComplete}
+                   onCancel={handleVideoRecordingCancel}
+                   isVisible={isRecordingOverlayVisible}
+                   onToggleVisibility={handleToggleOverlayVisibility}
+                   onRecordingStateChange={handleRecordingStateChange}
+               />
+           )}
+           {/* Debug info */}
+           {showVideoRecordingOverlay && (
+               <div className="fixed bottom-4 left-4 bg-black text-white p-2 text-xs z-50">
+                   Debug: visible={isRecordingOverlayVisible.toString()}, recording={isCurrentlyRecording.toString()}
+               </div>
+           )}
+           
+           {showVideoEditingPopup && (
+               <VideoEditingPopup
+                   videoData={videoData}
+                   videoType={videoType}
+                   videoFileName={videoFileName}
+                   position={popupPosition}
+                   onClose={handleVideoEditingPopupClose}
                />
            )}
         </div>
