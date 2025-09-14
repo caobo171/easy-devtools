@@ -191,6 +191,7 @@ export default function ScreenshotTool({ initialImage }: ScreenshotToolProps) {
                         }}
                         selectedAnnotationId={state.selectedAnnotationId}
                         onSelectedAnnotationChange={handleSelectedAnnotationChange}
+                        onEditModeChange={state.setEditMode}
                     />
                 </div>
 

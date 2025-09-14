@@ -20,6 +20,7 @@ interface KonvaEditorProps {
     onTextInputRequest: (position: { x: number; y: number }) => void;
     selectedAnnotationId: string | null;
     onSelectedAnnotationChange: (annotationId: string | null) => void;
+    onEditModeChange: (mode: EditMode) => void;
 }
 
 export const KonvaEditor: React.FC<KonvaEditorProps> = ({
@@ -38,7 +39,8 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
     onCropAreaChange,
     onTextInputRequest,
     selectedAnnotationId,
-    onSelectedAnnotationChange
+    onSelectedAnnotationChange,
+    onEditModeChange
 }) => {
     const imageRef = useRef<Konva.Image>(null);
     const backgroundImageRef = useRef<Konva.Image>(null);
@@ -60,19 +62,19 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                 const maxWidth = 800 - (imageAdjustments.padding * 2);
                 const maxHeight = 600 - (imageAdjustments.padding * 2);
                 const aspectRatio = img.width / img.height;
-                
+
                 let imageWidth = maxWidth;
                 let imageHeight = maxWidth / aspectRatio;
-                
+
                 if (imageHeight > maxHeight) {
                     imageHeight = maxHeight;
                     imageWidth = maxHeight * aspectRatio;
                 }
-                
+
                 // Stage size includes padding for background area
-                setStageSize({ 
-                    width: imageWidth + (imageAdjustments.padding * 2), 
-                    height: imageHeight + (imageAdjustments.padding * 2) 
+                setStageSize({
+                    width: imageWidth + (imageAdjustments.padding * 2),
+                    height: imageHeight + (imageAdjustments.padding * 2)
                 });
             };
             img.src = capturedImage;
@@ -117,17 +119,17 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
     useEffect(() => {
         if (imageRef.current && image) {
             const konvaImage = imageRef.current;
-            
+
             // Apply Konva filters (excluding blur - that's for background only)
             konvaImage.filters([
                 Konva.Filters.Brighten,
                 Konva.Filters.Contrast
             ]);
-            
+
             // Set filter values
             konvaImage.brightness(imageAdjustments.brightness - 1); // Konva expects -1 to 1 range
             konvaImage.contrast(imageAdjustments.contrast - 1); // Konva expects -100 to 100 range, but we'll use -1 to 1
-            
+
             konvaImage.cache();
             konvaImage.getLayer()?.batchDraw();
         }
@@ -151,17 +153,17 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
         if (editMode === 'select') {
             const clickedOnEmpty = e.target === e.target.getStage();
             const clickedOnTransformer = e.target.getParent()?.className === 'Transformer';
-            
+
             // Don't clear selection if clicking on transformer handles
             if (clickedOnTransformer) {
                 return;
             }
-            
+
             if (clickedOnEmpty) {
                 onSelectedAnnotationChange(null);
                 return;
             }
-            
+
             const clickedShape = e.target;
             if (clickedShape.id()) {
                 const clickedAnnotation = annotations.find(ann => ann.id === clickedShape.id());
@@ -240,7 +242,7 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
         const insetSize = imageAdjustments.inset;
         const balancedWidth = cropArea.width;
         const balancedHeight = cropArea.height;
-        
+
         // Step 2: Create final canvas with inset space
         canvas.width = balancedWidth + (insetSize * 2);
         canvas.height = balancedHeight + (insetSize * 2);
@@ -320,36 +322,36 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
             };
         };
 
-        const colorDistance = (c1: {r: number, g: number, b: number}, c2: {r: number, g: number, b: number}) => {
+        const colorDistance = (c1: { r: number, g: number, b: number }, c2: { r: number, g: number, b: number }) => {
             return Math.sqrt(Math.pow(c1.r - c2.r, 2) + Math.pow(c1.g - c2.g, 2) + Math.pow(c1.b - c2.b, 2));
         };
 
         // Analyze top vs bottom difference
         let topCropPixels = 0;
         let bottomCropPixels = 0;
-        
+
         const sampleWidth = Math.min(100, image.width); // Sample center area
         const startX = Math.floor((image.width - sampleWidth) / 2);
-        
+
         for (let i = 0; i < Math.min(50, Math.floor(image.height / 4)); i++) {
             let topRowDiff = 0;
             let bottomRowDiff = 0;
             let samples = 0;
-            
+
             for (let x = startX; x < startX + sampleWidth; x += 5) {
                 const topColor = getPixelColor(x, i);
                 const bottomColor = getPixelColor(x, image.height - 1 - i);
                 const centerTopColor = getPixelColor(x, Math.floor(image.height * 0.3));
                 const centerBottomColor = getPixelColor(x, Math.floor(image.height * 0.7));
-                
+
                 topRowDiff += colorDistance(topColor, centerTopColor);
                 bottomRowDiff += colorDistance(bottomColor, centerBottomColor);
                 samples++;
             }
-            
+
             const avgTopDiff = topRowDiff / samples;
             const avgBottomDiff = bottomRowDiff / samples;
-            
+
             if (avgTopDiff > 30) topCropPixels = i + 1;
             if (avgBottomDiff > 30) bottomCropPixels = i + 1;
         }
@@ -357,29 +359,29 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
         // Analyze left vs right difference
         let leftCropPixels = 0;
         let rightCropPixels = 0;
-        
+
         const sampleHeight = Math.min(100, image.height);
         const startY = Math.floor((image.height - sampleHeight) / 2);
-        
+
         for (let i = 0; i < Math.min(50, Math.floor(image.width / 4)); i++) {
             let leftColDiff = 0;
             let rightColDiff = 0;
             let samples = 0;
-            
+
             for (let y = startY; y < startY + sampleHeight; y += 5) {
                 const leftColor = getPixelColor(i, y);
                 const rightColor = getPixelColor(image.width - 1 - i, y);
                 const centerLeftColor = getPixelColor(Math.floor(image.width * 0.3), y);
                 const centerRightColor = getPixelColor(Math.floor(image.width * 0.7), y);
-                
+
                 leftColDiff += colorDistance(leftColor, centerLeftColor);
                 rightColDiff += colorDistance(rightColor, centerRightColor);
                 samples++;
             }
-            
+
             const avgLeftDiff = leftColDiff / samples;
             const avgRightDiff = rightColDiff / samples;
-            
+
             if (avgLeftDiff > 30) leftCropPixels = i + 1;
             if (avgRightDiff > 30) rightCropPixels = i + 1;
         }
@@ -404,6 +406,8 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
 
         const pos = stage.getPointerPosition();
         if (!pos) return;
+
+        console.log('editMode', editMode);
 
         if (editMode === 'crop' && cropArea) {
             onCropAreaChange({
@@ -439,7 +443,7 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
         if (!isDrawing) return;
 
         setIsDrawing(false);
-        
+
         if (editMode === 'crop') {
             // Crop area is already updated in onCropAreaChange
             return;
@@ -449,19 +453,26 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
             // Add the completed annotation to the list
             onAnnotationsChange([...annotations, currentAnnotation]);
             onCurrentAnnotationChange(null);
+
+            // Automatically select the newly created annotation
+            onSelectedAnnotationChange(currentAnnotation.id);
+
+            // Switch to select mode to show transformer
+            onEditModeChange('select');
         }
     };
 
     const renderAnnotation = (annotation: Annotation) => {
+
         const commonProps = {
             id: annotation.id,
             stroke: annotation.color,
             strokeWidth: annotation.strokeWidth || 2,
             fill: annotation.type === 'highlight' ? annotation.color : 'transparent',
             opacity: annotation.type === 'highlight' ? 0.3 : 1,
-            draggable: editMode === 'select',
+            draggable: editMode === 'select' || annotation.id === selectedAnnotationId,
             onDragEnd: (e: any) => {
-                if (editMode === 'select') {
+                if (editMode === 'select' || annotation.id === selectedAnnotationId) {
                     const node = e.target;
                     const updatedAnnotations = annotations.map(ann => {
                         if (ann.id === annotation.id) {
@@ -469,14 +480,14 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                             // but we store the top-left corner position
                             let newX = node.x();
                             let newY = node.y();
-                            
+
                             if (annotation.type === 'circle') {
                                 newX = node.x() - (annotation.width || 0) / 2;
                                 newY = node.y() - (annotation.height || 0) / 2;
                             } else if (annotation.type === 'arrow') {
                                 // For arrows, get the actual points from the dragged node
                                 const points = node.points();
-                                
+
                                 return {
                                     ...ann,
                                     x: points[0],
@@ -485,7 +496,7 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                                     endY: points[3],
                                 };
                             }
-                            
+
                             return {
                                 ...ann,
                                 x: newX,
@@ -495,7 +506,7 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                         return ann;
                     });
                     onAnnotationsChange(updatedAnnotations);
-                    
+
                     // Update selected annotation
                     const updatedSelectedAnnotation = updatedAnnotations.find(ann => ann.id === annotation.id);
                     if (updatedSelectedAnnotation) {
@@ -524,13 +535,13 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                         scaleY={annotation.scaleY || 1}
                         width={annotation.width || 0}
                         height={annotation.height || 0}
-                        fill={annotation.type === 'highlight' ? annotation.color : 
-                              annotation.type === 'blur' ? 'rgba(255,255,255,0.8)' : 'transparent'}
+                        fill={annotation.type === 'highlight' ? annotation.color :
+                            annotation.type === 'blur' ? 'rgba(255,255,255,0.8)' : 'transparent'}
                     />
                 );
             case 'circle':
                 const radius = Math.sqrt(
-                    Math.pow((annotation.width || 0) / 2, 2) + 
+                    Math.pow((annotation.width || 0) / 2, 2) +
                     Math.pow((annotation.height || 0) / 2, 2)
                 );
                 return (
@@ -597,7 +608,7 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
     return (
         <div className="flex-1 rounded-lg overflow-hidden relative">
             <div className="w-full h-full flex items-center justify-center p-4">
-                <div 
+                <div
                     className="relative rounded-lg overflow-hidden shadow-2xl"
 
                 >
@@ -631,20 +642,20 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                                     y={0}
                                     width={stageSize.width}
                                     height={stageSize.height}
-                                    fill={imageAdjustments.background.type === 'solid' 
+                                    fill={imageAdjustments.background.type === 'solid'
                                         ? imageAdjustments.background.color || 'transparent'
                                         : 'transparent'
                                     }
                                     fillLinearGradientStartPoint={
-                                        imageAdjustments.background.type === 'gradient' && 
-                                        imageAdjustments.background.gradient?.type === 'linear'
+                                        imageAdjustments.background.type === 'gradient' &&
+                                            imageAdjustments.background.gradient?.type === 'linear'
                                             ? { x: 0, y: 0 }
                                             : undefined
                                     }
                                     fillLinearGradientEndPoint={
-                                        imageAdjustments.background.type === 'gradient' && 
-                                        imageAdjustments.background.gradient?.type === 'linear'
-                                            ? { 
+                                        imageAdjustments.background.type === 'gradient' &&
+                                            imageAdjustments.background.gradient?.type === 'linear'
+                                            ? {
                                                 x: Math.cos((imageAdjustments.background.gradient.direction || 45) * Math.PI / 180) * stageSize.width,
                                                 y: Math.sin((imageAdjustments.background.gradient.direction || 45) * Math.PI / 180) * stageSize.height
                                             }
@@ -652,7 +663,7 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                                     }
                                 />
                             )}
-                            
+
                             {processedImage && (
                                 <KonvaImage
                                     ref={imageRef}
@@ -668,27 +679,7 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                                     shadowOpacity={imageAdjustments.shadow > 0 ? 1 : 0}
                                 />
                             )}
-                            
-                            {/* Render all annotations */}
-                            {annotations.map((annotation) => renderAnnotation(annotation))}
-                            
-                            {/* Render current annotation being drawn (only if not in annotations array) */}
-                            {currentAnnotation && !annotations.find(ann => ann.id === currentAnnotation.id) && renderAnnotation(currentAnnotation)}
-                            
-                            {/* Crop area */}
-                            {cropArea && editMode === 'crop' && (
-                                <Rect
-                                    x={cropArea.x}
-                                    y={cropArea.y}
-                                    width={cropArea.width}
-                                    height={cropArea.height}
-                                    stroke="rgba(255, 255, 255, 0.8)"
-                                    strokeWidth={2}
-                                    dash={[5, 5]}
-                                    fill="transparent"
-                                />
-                            )}
-                            
+
                             {/* Transformer for selected shapes */}
                             {editMode === 'select' && (
                                 <Transformer
@@ -720,13 +711,13 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                                                     if (ann.id === selectedAnnotationId) {
                                                         const scaleX = selectedNode.scaleX();
                                                         const scaleY = selectedNode.scaleY();
-                                                        
+
                                                         // Apply scale to dimensions and reset scale
                                                         const newWidth = (ann.width || 0);
                                                         const newHeight = (ann.height || 0);
-                                                        
 
-                                                        
+
+
                                                         // Handle different annotation types for transform
                                                         if (ann.type === 'circle') {
                                                             // For circles, adjust position since they're rendered at center
@@ -739,7 +730,7 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                                                             };
                                                         } else if (ann.type === 'arrow') {
                                                             // For arrows, get the actual points
-                                                            
+
                                                             return {
                                                                 ...ann,
                                                                 scaleX,
@@ -761,7 +752,7 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                                                     return ann;
                                                 });
                                                 onAnnotationsChange(updatedAnnotations);
-                                                
+
                                                 // Update selected annotation
                                                 // const updatedSelectedAnnotation = updatedAnnotations.find(ann => ann.id === selectedId);
                                                 // if (updatedSelectedAnnotation) {
@@ -772,6 +763,28 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                                     }}
                                 />
                             )}
+
+                            {/* Render all annotations */}
+                            {annotations.map((annotation) => renderAnnotation(annotation))}
+
+                            {/* Render current annotation being drawn (only if not in annotations array) */}
+                            {currentAnnotation && !annotations.find(ann => ann.id === currentAnnotation.id) && renderAnnotation(currentAnnotation)}
+
+                            {/* Crop area */}
+                            {cropArea && editMode === 'crop' && (
+                                <Rect
+                                    x={cropArea.x}
+                                    y={cropArea.y}
+                                    width={cropArea.width}
+                                    height={cropArea.height}
+                                    stroke="rgba(255, 255, 255, 0.8)"
+                                    strokeWidth={2}
+                                    dash={[5, 5]}
+                                    fill="transparent"
+                                />
+                            )}
+
+
                         </Layer>
                     </Stage>
                 </div>
