@@ -18,8 +18,8 @@ interface KonvaEditorProps {
     onCurrentAnnotationChange: (annotation: Annotation | null) => void;
     onCropAreaChange: (cropArea: CropArea | null) => void;
     onTextInputRequest: (position: { x: number; y: number }) => void;
-    selectedAnnotation: Annotation | null;
-    onSelectedAnnotationChange: (annotation: Annotation | null) => void;
+    selectedAnnotationId: string | null;
+    onSelectedAnnotationChange: (annotationId: string | null) => void;
 }
 
 export const KonvaEditor: React.FC<KonvaEditorProps> = ({
@@ -37,7 +37,7 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
     onCurrentAnnotationChange,
     onCropAreaChange,
     onTextInputRequest,
-    selectedAnnotation,
+    selectedAnnotationId,
     onSelectedAnnotationChange
 }) => {
     const imageRef = useRef<Konva.Image>(null);
@@ -48,7 +48,6 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
     const [backgroundImage, setBackgroundImage] = useState<HTMLImageElement | null>(null);
     const [stageSize, setStageSize] = useState({ width: 800, height: 600 });
     const [isDrawing, setIsDrawing] = useState(false);
-    const [selectedId, setSelectedId] = useState<string | null>(selectedAnnotation?.id || null);
 
     // Load image and calculate stage size including padding
     useEffect(() => {
@@ -134,15 +133,10 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
         }
     }, [imageAdjustments, image]);
 
-    // Sync selectedId with selectedAnnotation prop
-    useEffect(() => {
-        setSelectedId(selectedAnnotation?.id || null);
-    }, [selectedAnnotation]);
-
     // Handle transformer selection
     useEffect(() => {
-        if (selectedId && transformerRef.current && stageRef.current) {
-            const selectedNode = stageRef.current.findOne(`#${selectedId}`);
+        if (selectedAnnotationId && transformerRef.current && stageRef.current) {
+            const selectedNode = stageRef.current.findOne(`#${selectedAnnotationId}`);
             if (selectedNode) {
                 transformerRef.current.nodes([selectedNode]);
                 transformerRef.current.getLayer()?.batchDraw();
@@ -151,7 +145,7 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
             transformerRef.current.nodes([]);
             transformerRef.current.getLayer()?.batchDraw();
         }
-    }, [selectedId, annotations]); // Re-run when annotations change to maintain selection
+    }, [selectedAnnotationId, annotations]); // Re-run when annotations change to maintain selection
 
     const handleStageMouseDown = (e: Konva.KonvaEventObject<MouseEvent>) => {
         if (editMode === 'select') {
@@ -164,7 +158,6 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
             }
             
             if (clickedOnEmpty) {
-                setSelectedId(null);
                 onSelectedAnnotationChange(null);
                 return;
             }
@@ -172,8 +165,7 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
             const clickedShape = e.target;
             if (clickedShape.id()) {
                 const clickedAnnotation = annotations.find(ann => ann.id === clickedShape.id());
-                setSelectedId(clickedShape.id());
-                onSelectedAnnotationChange(clickedAnnotation || null);
+                onSelectedAnnotationChange(clickedAnnotation?.id || null);
             }
             return;
         }
@@ -507,14 +499,13 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                     // Update selected annotation
                     const updatedSelectedAnnotation = updatedAnnotations.find(ann => ann.id === annotation.id);
                     if (updatedSelectedAnnotation) {
-                        onSelectedAnnotationChange(updatedSelectedAnnotation);
+                        onSelectedAnnotationChange(updatedSelectedAnnotation.id);
                     }
                 }
             },
             onClick: () => {
                 if (editMode === 'select') {
-                    setSelectedId(annotation.id);
-                    onSelectedAnnotationChange(annotation);
+                    onSelectedAnnotationChange(annotation.id);
                 }
             },
         };
@@ -722,11 +713,11 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                                     ]}
                                     onTransformEnd={() => {
                                         // Update annotation position/size after transformation
-                                        if (selectedId && stageRef.current) {
-                                            const selectedNode = stageRef.current.findOne(`#${selectedId}`);
+                                        if (selectedAnnotationId && stageRef.current) {
+                                            const selectedNode = stageRef.current.findOne(`#${selectedAnnotationId}`);
                                             if (selectedNode) {
                                                 const updatedAnnotations = annotations.map(ann => {
-                                                    if (ann.id === selectedId) {
+                                                    if (ann.id === selectedAnnotationId) {
                                                         const scaleX = selectedNode.scaleX();
                                                         const scaleY = selectedNode.scaleY();
                                                         
@@ -772,10 +763,10 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                                                 onAnnotationsChange(updatedAnnotations);
                                                 
                                                 // Update selected annotation
-                                                const updatedSelectedAnnotation = updatedAnnotations.find(ann => ann.id === selectedId);
-                                                if (updatedSelectedAnnotation) {
-                                                    onSelectedAnnotationChange(updatedSelectedAnnotation);
-                                                }
+                                                // const updatedSelectedAnnotation = updatedAnnotations.find(ann => ann.id === selectedId);
+                                                // if (updatedSelectedAnnotation) {
+                                                //     onSelectedAnnotationChange(updatedSelectedAnnotation);
+                                                // }
                                             }
                                         }
                                     }}

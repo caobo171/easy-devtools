@@ -13,10 +13,6 @@ export default function ScreenshotTool({ initialImage }: ScreenshotToolProps) {
     // Use the custom hook for state management
     const state = useScreenshotState(initialImage);
 
-    // Get selected annotation from annotations array
-    const selectedAnnotation = state.selectedAnnotationId 
-        ? state.annotations.find(ann => ann.id === state.selectedAnnotationId) || null
-        : null;
 
     // Handle annotation updates from PropertyPanel
     const handleAnnotationUpdate = (updatedAnnotation: Annotation) => {
@@ -27,14 +23,14 @@ export default function ScreenshotTool({ initialImage }: ScreenshotToolProps) {
     };
 
     // Handle selected annotation changes from KonvaEditor
-    const handleSelectedAnnotationChange = (annotation: Annotation | null) => {
-        state.setSelectedAnnotationId(annotation?.id || null);
+    const handleSelectedAnnotationChange = (annotationId: string | null) => {
+        state.setSelectedAnnotationId(annotationId);
     };
 
     // Handle removing the selected annotation
     const handleRemoveSelectedAnnotation = () => {
-        if (selectedAnnotation) {
-            const updatedAnnotations = state.annotations.filter(ann => ann.id !== selectedAnnotation.id);
+        if (state.selectedAnnotationId) {
+            const updatedAnnotations = state.annotations.filter(ann => ann.id !== state.selectedAnnotationId);
             state.setAnnotations(updatedAnnotations);
             state.setSelectedAnnotationId(null);
         }
@@ -193,7 +189,7 @@ export default function ScreenshotTool({ initialImage }: ScreenshotToolProps) {
                             state.setTextPosition(position);
                             state.setShowTextInput(true);
                         }}
-                        selectedAnnotation={selectedAnnotation}
+                        selectedAnnotationId={state.selectedAnnotationId}
                         onSelectedAnnotationChange={handleSelectedAnnotationChange}
                     />
                 </div>
@@ -202,6 +198,7 @@ export default function ScreenshotTool({ initialImage }: ScreenshotToolProps) {
                 {state.capturedImage && (
                     <div className="flex-shrink-0">
                         <PropertyPanel
+                            annotations={state.annotations}
                             editMode={state.editMode}
                             selectedColor={state.selectedColor}
                             setSelectedColor={state.setSelectedColor}
@@ -214,7 +211,7 @@ export default function ScreenshotTool({ initialImage }: ScreenshotToolProps) {
                             onUndo={state.undoLastAnnotation}
                             onClearAll={state.clearAnnotations}
                             hasAnnotations={state.annotations.length > 0}
-                            selectedAnnotation={selectedAnnotation}
+                            selectedAnnotationId={state.selectedAnnotationId}
                             onUpdateAnnotation={handleAnnotationUpdate}
                             onRemoveSelectedAnnotation={handleRemoveSelectedAnnotation}
                         />

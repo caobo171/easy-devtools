@@ -6,6 +6,7 @@ interface PropertyPanelProps {
     editMode: EditMode;
     selectedColor: string;
     setSelectedColor: (color: string) => void;
+    annotations: Annotation[];
     fontSize: number;
     setFontSize: (size: number) => void;
     strokeWidth: number;
@@ -15,7 +16,7 @@ interface PropertyPanelProps {
     onUndo: () => void;
     onClearAll: () => void;
     hasAnnotations: boolean;
-    selectedAnnotation: Annotation | null;
+    selectedAnnotationId: string | null;
     onUpdateAnnotation: (annotation: Annotation) => void;
     onRemoveSelectedAnnotation: () => void;
 }
@@ -39,7 +40,8 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
     onUndo,
     onClearAll,
     hasAnnotations,
-    selectedAnnotation,
+    annotations,
+    selectedAnnotationId,
     onUpdateAnnotation,
     onRemoveSelectedAnnotation
 }) => {
@@ -52,6 +54,7 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
         setImageAdjustments({ ...imageAdjustments, [key]: value });
     };
 
+    const selectedAnnotation = annotations.find(ann => ann.id === selectedAnnotationId);
     // Get effective values for the property panel
     const getEffectiveColor = () => selectedAnnotation?.color || selectedColor;
     const getEffectiveFontSize = () => selectedAnnotation?.fontSize || fontSize;
@@ -167,7 +170,7 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
             <div className="flex-shrink-0 p-4 border-b border-gray-700">
                 <div className="flex items-center justify-between">
                     <h3 className="text-white font-semibold text-lg">
-                        {selectedAnnotation ? '✏️ Edit Annotation' : '🎨 Styles'}
+                        {selectedAnnotationId ? '✏️ Edit Annotation' : '🎨 Styles'}
                     </h3>
                     <div className="flex gap-1">
                         <Button
@@ -180,7 +183,7 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
                         >
                             ↶
                         </Button>
-                        {selectedAnnotation && (
+                        {selectedAnnotationId && (
                             <Button
                                 onClick={onRemoveSelectedAnnotation}
                                 size="sm"
