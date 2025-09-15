@@ -180,7 +180,8 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
             return {
                 backgroundImage: `url(${bg.image})`,
                 backgroundSize: 'cover',
-                backgroundPosition: 'center'
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat'
             };
         }
         return {};
@@ -348,12 +349,30 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
                             <div
                                 key={i}
                                 onClick={() => updateAdjustment('background', bg)}
-                                className={`aspect-square rounded-lg border cursor-pointer transition-all shadow-sm hover:shadow-md ${JSON.stringify(imageAdjustments.background) === JSON.stringify(bg)
+                                className={`aspect-square rounded-lg border cursor-pointer transition-all shadow-sm hover:shadow-md overflow-hidden ${JSON.stringify(imageAdjustments.background) === JSON.stringify(bg)
                                     ? 'border-blue-500 ring-2 ring-blue-200 scale-105'
                                     : 'border-slate-300 hover:border-slate-400'
                                     }`}
-                                style={getBackgroundPreview(bg)}
-                            />
+                            >
+                                {bg.type === 'image' && bg.image ? (
+                                    <img
+                                        src={bg.image}
+                                        alt="Background preview"
+                                        className="w-full h-full object-cover"
+                                        crossOrigin="anonymous"
+                                        onError={(e) => {
+                                            // Fallback to a placeholder or hide the image
+                                            e.currentTarget.style.display = 'none';
+                                            e.currentTarget.parentElement!.style.background = '#f1f5f9';
+                                        }}
+                                    />
+                                ) : (
+                                    <div
+                                        className="w-full h-full"
+                                        style={getBackgroundPreview(bg)}
+                                    />
+                                )}
+                            </div>
                         ))}
                     </div>
 
