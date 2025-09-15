@@ -640,9 +640,6 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
         );
     }
 
-
-    console.log('annotations', annotations);
-
     return (
         <div className="flex-1 rounded-xl overflow-hidden relative bg-gradient-to-br from-white to-slate-50">
             <div className="w-full h-full flex items-center justify-center p-6">
@@ -685,7 +682,7 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                                     height={canvasSize.height}
                                     fill={imageAdjustments.background.type === 'solid'
                                         ? imageAdjustments.background.color || 'transparent'
-                                        : 'transparent'
+                                        : undefined
                                     }
                                     fillLinearGradientStartPoint={
                                         imageAdjustments.background.type === 'gradient' &&
@@ -700,6 +697,50 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                                                 x: Math.cos((imageAdjustments.background.gradient.direction || 45) * Math.PI / 180) * canvasSize.width,
                                                 y: Math.sin((imageAdjustments.background.gradient.direction || 45) * Math.PI / 180) * canvasSize.height
                                             }
+                                            : undefined
+                                    }
+                                    fillLinearGradientColorStops={
+                                        imageAdjustments.background.type === 'gradient' &&
+                                            imageAdjustments.background.gradient?.type === 'linear' &&
+                                            imageAdjustments.background.gradient.colors
+                                            ? imageAdjustments.background.gradient.colors.flatMap((color, index) => [
+                                                index / (imageAdjustments.background.gradient!.colors.length - 1),
+                                                color
+                                            ])
+                                            : undefined
+                                    }
+                                    fillRadialGradientStartPoint={
+                                        imageAdjustments.background.type === 'gradient' &&
+                                            imageAdjustments.background.gradient?.type === 'radial'
+                                            ? { x: canvasSize.width / 2, y: canvasSize.height / 2 }
+                                            : undefined
+                                    }
+                                    fillRadialGradientEndPoint={
+                                        imageAdjustments.background.type === 'gradient' &&
+                                            imageAdjustments.background.gradient?.type === 'radial'
+                                            ? { x: canvasSize.width / 2, y: canvasSize.height / 2 }
+                                            : undefined
+                                    }
+                                    fillRadialGradientStartRadius={
+                                        imageAdjustments.background.type === 'gradient' &&
+                                            imageAdjustments.background.gradient?.type === 'radial'
+                                            ? 0
+                                            : undefined
+                                    }
+                                    fillRadialGradientEndRadius={
+                                        imageAdjustments.background.type === 'gradient' &&
+                                            imageAdjustments.background.gradient?.type === 'radial'
+                                            ? Math.max(canvasSize.width, canvasSize.height) / 2
+                                            : undefined
+                                    }
+                                    fillRadialGradientColorStops={
+                                        imageAdjustments.background.type === 'gradient' &&
+                                            imageAdjustments.background.gradient?.type === 'radial' &&
+                                            imageAdjustments.background.gradient.colors
+                                            ? imageAdjustments.background.gradient.colors.flatMap((color, index) => [
+                                                index / (imageAdjustments.background.gradient!.colors.length - 1),
+                                                color
+                                            ])
                                             : undefined
                                     }
                                 />
