@@ -51,9 +51,10 @@ export default () => {
         const handleKeyDown = (event: KeyboardEvent) => {
             console.log('Key pressed:', event.key, event.shiftKey, event.metaKey, event.ctrlKey);
             // Check for Cmd+Shift+6 (Mac) or Ctrl+Shift+6 (Windows/Linux)
-            if (event.shiftKey && event.key === '6') {
+
+            if (event.shiftKey && (event.key === '6' || event.key === '^')) {
                 event.preventDefault();
-                const correctModifier = event.metaKey;
+                const correctModifier = event.metaKey || event.ctrlKey;
                 
                 console.log('Correct modifier:', correctModifier);
                 if (correctModifier) {

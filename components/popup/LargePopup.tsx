@@ -39,7 +39,7 @@ export const LargePopup: React.FC<LargePopupProps> = ({
         variant="secondary" 
         size="icon" 
         onClick={onClose} 
-        className="fixed right-2 top-2 z-[1000000002] rounded-full bg-gray-800 hover:bg-gray-700 shadow-lg"
+        className="fixed right-2 top-2 z-[1000000002] rounded-full bg-white hover:bg-slate-50 border border-slate-200 shadow-lg text-slate-700 hover:text-slate-800"
       >
         <X className="h-4 w-4" />
       </Button>

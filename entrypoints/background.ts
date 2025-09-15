@@ -14,14 +14,13 @@ function saveAppState(message: ExtMessage, sendResponse?: (response: any) => voi
     // Parse the JSON string from message.content
     let appState: AppState;
     let isPartialUpdate = message.messageType === MessageType.savePartialAppState;
+	
     
     try {
         appState = JSON.parse(message.content as string) as AppState;
         console.log(`Successfully parsed ${isPartialUpdate ? 'partial' : 'full'} app state:`, appState);
     } catch (parseError) {
-        if (message.content) {
-            console.log(message.content);
-        }
+		console.log(message);
         console.error(`Failed to parse ${isPartialUpdate ? 'partial' : 'full'} app state JSON:`, parseError);
         if (sendResponse) sendResponse({ success: false, error: 'Invalid JSON data' });
         return true;
@@ -121,7 +120,7 @@ export default defineBackground(() => {
     });
 
     browser.contextMenus.create({
-        id: "openInSidebar",
+        id: MessageType.openInSidebar,
         parentId: "devtools-parent",
         title: "📋 Open tools sidebar",
         contexts: ["selection", "page", "editable", "frame", "link", "image"],
@@ -165,13 +164,27 @@ export default defineBackground(() => {
                 saveAppState({
                     messageType: MessageType.savePartialAppState,
                     currentSelectedTool: Tools.takeScreenshot.id,
+					toolState: {
+                        [Tools.takeScreenshot.id]: { }
+                    }
                 } as unknown as ExtMessage);
                 break;
 
             case MessageType.openInSidebar:
+
+				console.log("openInSidebar");
                 message = new ExtMessage(MessageType.openInSidebar);
                 message.content = info.selectionText || '';
                 message.from = MessageFrom.background;
+                
+                // Open the sidepanel
+                if (tab?.id) {
+                    browser.sidePanel.open({ tabId: tab.id }).then(() => {
+                        console.log('Sidepanel opened successfully');
+                    }).catch(error => {
+                        console.error('Failed to open sidepanel:', error);
+                    });
+                }
                 break;
 
             default:
@@ -238,7 +251,33 @@ export default defineBackground(() => {
                 }
             }
             return true;
-        } else if (message.messageType === MessageType.captureVisibleTab) {
+        } else if (message.messageType === MessageType.openInSidebar) {
+
+			console.log("openInSidebar");
+
+			// Handle opening the sidepanel
+            if (sender.tab?.id) {
+                try {
+                    // We can't directly open the sidepanel, but we can collapse it
+                    // by opening an empty one or toggling it
+                    browser.tabs.query({ active: true, currentWindow: true }).then(tabs => {
+                        if (tabs[0]?.id) {
+                            // Toggle the sidepanel by opening it again (which will collapse it if already open)
+                            browser.sidePanel.open({ tabId: tabs[0].id }).then(() => {
+                                console.log('Sidepanel toggled to open');
+                                sendResponse({ success: true });
+                            }).catch(error => {
+                                console.error('Failed to toggle sidepanel:', error);
+                                sendResponse({ success: false, error: String(error) });
+                            });
+                        }
+                    });
+                } catch (error) {
+                    console.error('Error handling openInSidebar message:', error);
+                    sendResponse({ success: false, error: String(error) });
+                }
+            }
+		} else if (message.messageType === MessageType.captureVisibleTab) {
 
             // This is an asynchronous operation
             browser.tabs.captureVisibleTab(

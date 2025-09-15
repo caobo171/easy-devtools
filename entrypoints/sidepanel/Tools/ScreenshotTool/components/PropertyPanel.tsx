@@ -98,16 +98,38 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
 
     // Fetch Unsplash images
     const fetchUnsplashImages = async (query: string = 'nature') => {
-        setUnsplashImages([
-            { id: '1', urls: { small: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400' } },
-            { id: '2', urls: { small: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400' } },
-            { id: '3', urls: { small: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=400' } },
-            { id: '4', urls: { small: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=400' } },
-            { id: '5', urls: { small: 'https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=400' } },
-            { id: '6', urls: { small: 'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=400' } },
-            { id: '7', urls: { small: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400' } },
-            { id: '8', urls: { small: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400' } }
-        ]);
+        setIsLoadingImages(true);
+        try {
+            // Using Unsplash Source API for reliable images
+            const imageIds = [
+                'photo-1506905925346-21bda4d32df4',
+                'photo-1441974231531-c6227db76b6e', 
+                'photo-1470071459604-3b5ec3a7fe05',
+                'photo-1501785888041-af3ef285b470',
+                'photo-1518837695005-2083093ee35b',
+                'photo-1472214103451-9374bd1c798e',
+                'photo-1447752875215-b2761acb3c5d',
+                'photo-1433086966358-54859d0ed716'
+            ];
+            
+            const images = imageIds.map((id, index) => ({
+                id: (index + 1).toString(),
+                urls: { 
+                    small: `https://images.unsplash.com/${id}?w=400&h=300&fit=crop&auto=format`
+                }
+            }));
+            
+            setUnsplashImages(images);
+        } catch (error) {
+            console.error('Failed to fetch images:', error);
+            // Fallback to solid colors if images fail
+            setUnsplashImages([
+                { id: '1', urls: { small: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjZmY5YTllIi8+Cjx0ZXh0IHg9IjIwMCIgeT0iMTUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE2Ij5HcmFkaWVudCAxPC90ZXh0Pgo8L3N2Zz4K' } },
+                { id: '2', urls: { small: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjYThlZGVhIi8+Cjx0ZXh0IHg9IjIwMCIgeT0iMTUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE2Ij5HcmFkaWVudCAyPC90ZXh0Pgo8L3N2Zz4K' } }
+            ]);
+        } finally {
+            setIsLoadingImages(false);
+        }
     };
 
     useEffect(() => {
@@ -165,11 +187,11 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
     };
 
     return (
-        <div className="w-80 bg-gray-900 border-l border-gray-700 flex flex-col h-full">
+        <div className="w-80 bg-white/95 backdrop-blur-sm border-l border-slate-200 flex flex-col h-full shadow-lg">
             {/* Styles Header - Fixed */}
-            <div className="flex-shrink-0 p-4 border-b border-gray-700">
+            <div className="flex-shrink-0 p-4 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white">
                 <div className="flex items-center justify-between">
-                    <h3 className="text-white font-semibold text-lg">
+                    <h3 className="text-slate-800 font-semibold text-lg tracking-tight">
                         {selectedAnnotationId ? '✏️ Edit Annotation' : '🎨 Styles'}
                     </h3>
                     <div className="flex gap-1">
@@ -178,7 +200,7 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
                             disabled={!hasAnnotations}
                             size="sm"
                             variant="ghost"
-                            className="text-gray-400 hover:text-white p-1 h-8 w-8"
+                            className="text-slate-500 hover:text-slate-700 hover:bg-slate-100 p-1 h-8 w-8 rounded-lg transition-all duration-200"
                             title="Undo last action"
                         >
                             ↶
@@ -188,7 +210,7 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
                                 onClick={onRemoveSelectedAnnotation}
                                 size="sm"
                                 variant="ghost"
-                                className="text-red-400 hover:text-red-300 p-1 h-8 w-8"
+                                className="text-red-500 hover:text-red-600 hover:bg-red-50 p-1 h-8 w-8 rounded-lg transition-all duration-200"
                                 title="Remove selected annotation"
                             >
                                 ❌
@@ -199,7 +221,7 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
                             disabled={!hasAnnotations}
                             size="sm"
                             variant="ghost"
-                            className="text-gray-400 hover:text-white p-1 h-8 w-8"
+                            className="text-slate-500 hover:text-slate-700 hover:bg-slate-100 p-1 h-8 w-8 rounded-lg transition-all duration-200"
                             title="Reset all annotations"
                         >
                             🔄
@@ -209,18 +231,18 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
             </div>
 
             {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-6">
+            <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-gradient-to-b from-white to-slate-50">
 
                 {/* Color Picker */}
                 {showAnnotationProperties && (
                     <div className="space-y-3">
                         <div className="flex items-center gap-2">
-                            <span className="text-gray-300 text-sm font-medium">Color</span>
+                            <span className="text-slate-700 text-sm font-medium">Color</span>
                             <input
                                 type="color"
                                 value={getEffectiveColor()}
                                 onChange={(e) => updateColorProperty(e.target.value)}
-                                className="w-8 h-8 rounded border-2 border-gray-600 bg-transparent cursor-pointer"
+                                className="w-8 h-8 rounded-lg border-2 border-slate-300 bg-white cursor-pointer shadow-sm hover:shadow-md transition-all duration-200"
                             />
                         </div>
 
@@ -230,10 +252,10 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
                                     key={color}
                                     onClick={() => updateColorProperty(color)}
                                     className={`
-                                    w-8 h-8 rounded border-2 transition-all duration-200
+                                    w-8 h-8 rounded-lg border-2 transition-all duration-200 shadow-sm hover:shadow-md
                                     ${getEffectiveColor() === color
-                                            ? 'border-blue-400 scale-110'
-                                            : 'border-gray-600 hover:border-gray-400'
+                                            ? 'border-blue-500 scale-110 ring-2 ring-blue-200'
+                                            : 'border-slate-300 hover:border-slate-400'
                                         }
                                 `}
                                     style={{ backgroundColor: color }}
@@ -247,7 +269,7 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
                 {/* Tool-specific Properties */}
                 {(annotationType === 'text') && (
                     <div className="space-y-3">
-                        <label className="text-gray-300 text-sm font-medium">Font Size</label>
+                        <label className="text-slate-700 text-sm font-medium">Font Size</label>
                         <div className="space-y-2">
                             <input
                                 type="range"
@@ -257,14 +279,14 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
                                 onChange={(e) => updateFontSizeProperty(Number(e.target.value))}
                                 className="w-full accent-blue-500"
                             />
-                            <div className="text-gray-400 text-sm">{getEffectiveFontSize()}px</div>
+                            <div className="text-slate-500 text-sm bg-slate-100 px-2 py-1 rounded-md inline-block">{getEffectiveFontSize()}px</div>
                         </div>
                     </div>
                 )}
 
                 {(annotationType === 'arrow' || annotationType === 'rectangle' || annotationType === 'circle' || annotationType === 'pen') && (
                     <div className="space-y-3">
-                        <label className="text-gray-300 text-sm font-medium">Stroke Width</label>
+                        <label className="text-slate-700 text-sm font-medium">Stroke Width</label>
                         <div className="space-y-2">
                             <input
                                 type="range"
@@ -274,7 +296,7 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
                                 onChange={(e) => updateStrokeWidthProperty(Number(e.target.value))}
                                 className="w-full accent-blue-500"
                             />
-                            <div className="text-gray-400 text-sm">{getEffectiveStrokeWidth()}px</div>
+                            <div className="text-slate-500 text-sm bg-slate-100 px-2 py-1 rounded-md inline-block">{getEffectiveStrokeWidth()}px</div>
                         </div>
                     </div>
                 )}
@@ -283,30 +305,30 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
 
                 {/* Desktop/Gradient/Colors Tabs */}
                 <div className="space-y-3">
-                    <div className="flex gap-1 bg-gray-800 rounded-lg p-1">
+                    <div className="flex gap-1 bg-slate-100 rounded-lg p-1 shadow-sm">
                         <button
                             onClick={() => setBackgroundTab('desktop')}
-                            className={`flex-1 py-2 px-3 text-sm rounded-md transition-colors ${backgroundTab === 'desktop'
-                                ? 'text-white bg-gray-700'
-                                : 'text-gray-400 hover:text-white'
+                            className={`flex-1 py-2 px-3 text-sm rounded-lg transition-all duration-200 font-medium ${backgroundTab === 'desktop'
+                                ? 'text-white bg-blue-500 shadow-sm'
+                                : 'text-slate-600 hover:text-slate-800 hover:bg-white'
                                 }`}
                         >
                             Desktop
                         </button>
                         <button
                             onClick={() => setBackgroundTab('gradient')}
-                            className={`flex-1 py-2 px-3 text-sm rounded-md transition-colors ${backgroundTab === 'gradient'
-                                ? 'text-white bg-gray-700'
-                                : 'text-gray-400 hover:text-white'
+                            className={`flex-1 py-2 px-3 text-sm rounded-lg transition-all duration-200 font-medium ${backgroundTab === 'gradient'
+                                ? 'text-white bg-blue-500 shadow-sm'
+                                : 'text-slate-600 hover:text-slate-800 hover:bg-white'
                                 }`}
                         >
                             Gradient
                         </button>
                         <button
                             onClick={() => setBackgroundTab('colors')}
-                            className={`flex-1 py-2 px-3 text-sm rounded-md transition-colors ${backgroundTab === 'colors'
-                                ? 'text-white bg-gray-700'
-                                : 'text-gray-400 hover:text-white'
+                            className={`flex-1 py-2 px-3 text-sm rounded-lg transition-all duration-200 font-medium ${backgroundTab === 'colors'
+                                ? 'text-white bg-blue-500 shadow-sm'
+                                : 'text-slate-600 hover:text-slate-800 hover:bg-white'
                                 }`}
                         >
                             Colors
@@ -315,29 +337,9 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
 
                     {/* Search for Unsplash images when desktop tab is active */}
                     {backgroundTab === 'desktop' && (
-                        <div className="space-y-2">
-                            <div className="relative">
-                                <input
-                                    type="text"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    onKeyPress={(e) => e.key === 'Enter' && fetchUnsplashImages(searchQuery)}
-                                    placeholder="Search images..."
-                                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white text-sm placeholder-gray-400 focus:outline-none focus:border-blue-500"
-                                />
-                                <button
-                                    onClick={() => fetchUnsplashImages(searchQuery)}
-                                    disabled={isLoadingImages}
-                                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white disabled:opacity-50"
-                                >
-                                    🔍
-                                </button>
-                            </div>
-                            <div className="flex items-center justify-between text-xs text-gray-400">
-                                <span>📷 Search Unsplash</span>
-                                {isLoadingImages && <span>Loading...</span>}
-                            </div>
-                        </div>
+<>
+{/* Reserve here for Unplash searching, currently not implemented */}
+</>
                     )}
 
                     {/* Background Styles Grid */}
@@ -346,9 +348,9 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
                             <div
                                 key={i}
                                 onClick={() => updateAdjustment('background', bg)}
-                                className={`aspect-square rounded-lg border cursor-pointer transition-all ${JSON.stringify(imageAdjustments.background) === JSON.stringify(bg)
-                                    ? 'border-blue-500 ring-2 ring-blue-500/50'
-                                    : 'border-gray-600 hover:border-gray-500'
+                                className={`aspect-square rounded-lg border cursor-pointer transition-all shadow-sm hover:shadow-md ${JSON.stringify(imageAdjustments.background) === JSON.stringify(bg)
+                                    ? 'border-blue-500 ring-2 ring-blue-200 scale-105'
+                                    : 'border-slate-300 hover:border-slate-400'
                                     }`}
                                 style={getBackgroundPreview(bg)}
                             />
@@ -358,13 +360,13 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
 
                     {/* Image Adjustments */}
                     <div className="space-y-4">
-                        <h4 className="text-white font-medium">Screenshot Adjustments</h4>
+                        <h4 className="text-slate-800 font-semibold tracking-tight">Screenshot Adjustments</h4>
 
                         {/* Padding - affects canvas size */}
                         <div className="space-y-2">
                             <div className="flex justify-between items-center">
-                                <label className="text-gray-300 text-sm">📏 Canvas Padding</label>
-                                <span className="text-gray-400 text-sm">{imageAdjustments.padding}px</span>
+                                <label className="text-slate-700 text-sm font-medium">📏 Canvas Padding</label>
+                                <span className="text-slate-500 text-sm bg-slate-100 px-2 py-1 rounded-md">{imageAdjustments.padding}px</span>
                             </div>
                             <input
                                 type="range"
@@ -379,8 +381,8 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
                         {/* Brightness - main image only */}
                         <div className="space-y-2">
                             <div className="flex justify-between items-center">
-                                <label className="text-gray-300 text-sm">💡 Image Brightness</label>
-                                <span className="text-gray-400 text-sm">{Math.round((imageAdjustments.brightness - 1) * 100)}%</span>
+                                <label className="text-slate-700 text-sm font-medium">💡 Image Brightness</label>
+                                <span className="text-slate-500 text-sm bg-slate-100 px-2 py-1 rounded-md">{Math.round((imageAdjustments.brightness - 1) * 100)}%</span>
                             </div>
                             <input
                                 type="range"
@@ -396,8 +398,8 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
                         {/* Contrast - main image only */}
                         <div className="space-y-2">
                             <div className="flex justify-between items-center">
-                                <label className="text-gray-300 text-sm">🔳 Image Contrast</label>
-                                <span className="text-gray-400 text-sm">{Math.round((imageAdjustments.contrast - 1) * 100)}%</span>
+                                <label className="text-slate-700 text-sm font-medium">🔳 Image Contrast</label>
+                                <span className="text-slate-500 text-sm bg-slate-100 px-2 py-1 rounded-md">{Math.round((imageAdjustments.contrast - 1) * 100)}%</span>
                             </div>
                             <input
                                 type="range"
@@ -413,8 +415,8 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
                         {/* Image Blur - main image only */}
                         <div className="space-y-2">
                             <div className="flex justify-between items-center">
-                                <label className="text-gray-300 text-sm">🔒 Background Blur</label>
-                                <span className="text-gray-400 text-sm">{imageAdjustments.blur}px</span>
+                                <label className="text-slate-700 text-sm font-medium">🔒 Background Blur</label>
+                                <span className="text-slate-500 text-sm bg-slate-100 px-2 py-1 rounded-md">{imageAdjustments.blur}px</span>
                             </div>
                             <input
                                 type="range"
@@ -429,8 +431,8 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
                         {/* Rounded Corners - main image only */}
                         <div className="space-y-2">
                             <div className="flex justify-between items-center">
-                                <label className="text-gray-300 text-sm">🔘 Image Rounded</label>
-                                <span className="text-gray-400 text-sm">{imageAdjustments.rounded}px</span>
+                                <label className="text-slate-700 text-sm font-medium">🔘 Image Rounded</label>
+                                <span className="text-slate-500 text-sm bg-slate-100 px-2 py-1 rounded-md">{imageAdjustments.rounded}px</span>
                             </div>
                             <input
                                 type="range"
@@ -445,8 +447,8 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
                         {/* Shadow - main image only */}
                         <div className="space-y-2">
                             <div className="flex justify-between items-center">
-                                <label className="text-gray-300 text-sm">🌫️ Image Shadow</label>
-                                <span className="text-gray-400 text-sm">{imageAdjustments.shadow}</span>
+                                <label className="text-slate-700 text-sm font-medium">🌫️ Image Shadow</label>
+                                <span className="text-slate-500 text-sm bg-slate-100 px-2 py-1 rounded-md">{imageAdjustments.shadow}</span>
                             </div>
                             <input
                                 type="range"
@@ -461,8 +463,8 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
                         {/* Inset */}
                         <div className="space-y-2">
                             <div className="flex justify-between items-center">
-                                <label className="text-gray-300 text-sm">📐 Inset</label>
-                                <span className="text-gray-400 text-sm">{imageAdjustments.inset}px</span>
+                                <label className="text-slate-700 text-sm font-medium">📐 Inset</label>
+                                <span className="text-slate-500 text-sm bg-slate-100 px-2 py-1 rounded-md">{imageAdjustments.inset}px</span>
                             </div>
                             <input
                                 type="range"
@@ -476,16 +478,16 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
 
                         {/* Inset Balance Toggle */}
                         <div className="flex items-center justify-between">
-                            <label className="text-gray-300 text-sm">⚖️ Auto Balance Inset</label>
+                            <label className="text-slate-700 text-sm font-medium">⚖️ Auto Balance Inset</label>
                             <button
                                 onClick={() => updateAdjustment('insetBalance', !imageAdjustments.insetBalance)}
                                 className={`
-                            w-12 h-6 rounded-full transition-colors duration-200
-                            ${imageAdjustments.insetBalance ? 'bg-blue-500' : 'bg-gray-600'}
+                            w-12 h-6 rounded-full transition-all duration-200 shadow-sm
+                            ${imageAdjustments.insetBalance ? 'bg-blue-500' : 'bg-slate-300'}
                         `}
                             >
                                 <div className={`
-                            w-5 h-5 bg-white rounded-full transition-transform duration-200
+                            w-5 h-5 bg-white rounded-full transition-transform duration-200 shadow-sm
                             ${imageAdjustments.insetBalance ? 'translate-x-6' : 'translate-x-0.5'}
                         `} />
                             </button>

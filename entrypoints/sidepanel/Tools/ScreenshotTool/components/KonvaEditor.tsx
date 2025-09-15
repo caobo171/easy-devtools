@@ -21,6 +21,9 @@ interface KonvaEditorProps {
     selectedAnnotationId: string | null;
     onSelectedAnnotationChange: (annotationId: string | null) => void;
     onEditModeChange: (mode: EditMode) => void;
+    canvasSize: { width: number; height: number };
+    setCanvasSize: (size: { width: number; height: number }) => void;
+    onExportRequest?: () => void;
 }
 
 export const KonvaEditor: React.FC<KonvaEditorProps> = ({
@@ -40,7 +43,9 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
     onTextInputRequest,
     selectedAnnotationId,
     onSelectedAnnotationChange,
-    onEditModeChange
+    onEditModeChange,
+    canvasSize,
+    setCanvasSize
 }) => {
     const imageRef = useRef<Konva.Image>(null);
     const backgroundImageRef = useRef<Konva.Image>(null);
@@ -48,38 +53,52 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
     const [image, setImage] = useState<HTMLImageElement | null>(null);
     const [processedImage, setProcessedImage] = useState<HTMLImageElement | null>(null);
     const [backgroundImage, setBackgroundImage] = useState<HTMLImageElement | null>(null);
-    const [stageSize, setStageSize] = useState({ width: 800, height: 600 });
+    // Using shared canvasSize from parent component
     const [isDrawing, setIsDrawing] = useState(false);
+    const [previewScale, setPreviewScale] = useState(1);
 
-    // Load image and calculate stage size including padding
+    // Load image and calculate canvas size with proper aspect ratio
     useEffect(() => {
         if (capturedImage) {
             const img = new window.Image();
             img.crossOrigin = 'anonymous';
             img.onload = () => {
                 setImage(img);
-                // Calculate image size based on available space (excluding padding)
-                const maxWidth = 800 - (imageAdjustments.padding * 2);
-                const maxHeight = 600 - (imageAdjustments.padding * 2);
-                const aspectRatio = img.width / img.height;
-
-                let imageWidth = maxWidth;
-                let imageHeight = maxWidth / aspectRatio;
-
-                if (imageHeight > maxHeight) {
-                    imageHeight = maxHeight;
-                    imageWidth = maxHeight * aspectRatio;
-                }
-
-                // Stage size includes padding for background area
-                setStageSize({
-                    width: imageWidth + (imageAdjustments.padding * 2),
-                    height: imageHeight + (imageAdjustments.padding * 2)
+                
+                // Canvas uses original image dimensions plus padding
+                const canvasWidth = img.width + (imageAdjustments.padding * 2);
+                const canvasHeight = img.height + (imageAdjustments.padding * 2);
+                
+                setCanvasSize({
+                    width: canvasWidth,
+                    height: canvasHeight
                 });
+                
+                // Calculate scale for preview display
+                const maxDisplayWidth = 800;
+                const maxDisplayHeight = 600;
+                const scaleX = maxDisplayWidth / canvasWidth;
+                const scaleY = maxDisplayHeight / canvasHeight;
+                const scale = Math.min(scaleX, scaleY, 1); // Don't scale up, only down
+                
+                setPreviewScale(scale);
             };
             img.src = capturedImage;
         }
     }, [capturedImage, imageAdjustments.padding]);
+
+    // Update preview scale when canvas size changes
+    useEffect(() => {
+        if (canvasSize.width > 0 && canvasSize.height > 0) {
+            const maxDisplayWidth = 800;
+            const maxDisplayHeight = 600;
+            const scaleX = maxDisplayWidth / canvasSize.width;
+            const scaleY = maxDisplayHeight / canvasSize.height;
+            const scale = Math.min(scaleX, scaleY, 1); // Don't scale up, only down
+            
+            setPreviewScale(scale);
+        }
+    }, [canvasSize]);
 
     // Process image with inset balance when settings change
     useEffect(() => {
@@ -592,12 +611,12 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
 
     if (!capturedImage) {
         return (
-            <div className="flex-1 flex items-center justify-cente rounded-lg border-2 border-dashed">
+            <div className="flex-1 flex items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-gradient-to-br from-slate-50 to-slate-100 transition-all duration-300 hover:border-slate-400 hover:from-slate-100 hover:to-slate-200">
                 <div className="text-center p-12">
-                    <div className="text-6xl mb-4">📷</div>
-                    <h3 className="text-white text-xl font-semibold mb-2">Drag and drop a photo here,</h3>
-                    <p className="text-gray-400 mb-4">or click to select a photo</p>
-                    <p className="text-gray-500 text-sm">a file with 2 MB</p>
+                    <div className="text-6xl mb-6 animate-pulse">📷</div>
+                    <h3 className="text-slate-800 text-xl font-semibold mb-3 tracking-tight">Drag and drop a photo here</h3>
+                    <p className="text-slate-500 mb-4 font-medium">or click to select a photo</p>
+                    <p className="text-slate-400 text-sm bg-white/60 px-3 py-1 rounded-full inline-block backdrop-blur-sm">Max file size: 2 MB</p>
                 </div>
             </div>
         );
@@ -607,16 +626,19 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
     console.log('annotations', annotations);
 
     return (
-        <div className="flex-1 rounded-lg overflow-hidden relative">
-            <div className="w-full h-full flex items-center justify-center p-4">
-                <div
-                    className="relative rounded-lg overflow-hidden shadow-2xl"
-
+        <div className="flex-1 rounded-xl overflow-hidden relative bg-gradient-to-br from-white to-slate-50">
+            <div className="w-full h-full flex items-center justify-center p-6">
+                <div 
+                    className="relative rounded-xl overflow-hidden shadow-xl ring-1 ring-slate-200/50 bg-white backdrop-blur-sm"
+                    style={{
+                        transform: `scale(${previewScale})`,
+                        transformOrigin: 'center'
+                    }}
                 >
                     <Stage
                         ref={stageRef}
-                        width={stageSize.width}
-                        height={stageSize.height}
+                        width={canvasSize.width}
+                        height={canvasSize.height}
                         onMouseDown={handleStageMouseDown}
                         onMousemove={handleStageMouseMove}
                         onMouseup={handleStageMouseUp}
@@ -632,8 +654,8 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                                     image={backgroundImage}
                                     x={0}
                                     y={0}
-                                    width={stageSize.width}
-                                    height={stageSize.height}
+                                    width={canvasSize.width}
+                                    height={canvasSize.height}
                                     filters={[Konva.Filters.Blur]}
                                     blurRadius={imageAdjustments.blur}
                                 />
@@ -641,8 +663,8 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                                 <Rect
                                     x={0}
                                     y={0}
-                                    width={stageSize.width}
-                                    height={stageSize.height}
+                                    width={canvasSize.width}
+                                    height={canvasSize.height}
                                     fill={imageAdjustments.background.type === 'solid'
                                         ? imageAdjustments.background.color || 'transparent'
                                         : 'transparent'
@@ -657,8 +679,8 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                                         imageAdjustments.background.type === 'gradient' &&
                                             imageAdjustments.background.gradient?.type === 'linear'
                                             ? {
-                                                x: Math.cos((imageAdjustments.background.gradient.direction || 45) * Math.PI / 180) * stageSize.width,
-                                                y: Math.sin((imageAdjustments.background.gradient.direction || 45) * Math.PI / 180) * stageSize.height
+                                                x: Math.cos((imageAdjustments.background.gradient.direction || 45) * Math.PI / 180) * canvasSize.width,
+                                                y: Math.sin((imageAdjustments.background.gradient.direction || 45) * Math.PI / 180) * canvasSize.height
                                             }
                                             : undefined
                                     }
@@ -671,13 +693,13 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                                     image={processedImage}
                                     x={imageAdjustments.padding}
                                     y={imageAdjustments.padding}
-                                    width={stageSize.width - (imageAdjustments.padding * 2)}
-                                    height={stageSize.height - (imageAdjustments.padding * 2)}
+                                    width={image?.width || 0}
+                                    height={image?.height || 0}
                                     cornerRadius={imageAdjustments.rounded}
-                                    shadowColor="rgba(0, 0, 0, 1)"
-                                    shadowBlur={imageAdjustments.shadow}
-                                    shadowOffset={{ x: imageAdjustments.shadow / 2, y: imageAdjustments.shadow / 2 }}
-                                    shadowOpacity={imageAdjustments.shadow > 0 ? 1 : 0}
+                                    shadowColor="rgba(0, 0, 0, 0.1)"
+                                    shadowBlur={imageAdjustments.shadow * 2}
+                                    shadowOffset={{ x: imageAdjustments.shadow / 3, y: imageAdjustments.shadow / 2 }}
+                                    shadowOpacity={imageAdjustments.shadow > 0 ? 0.8 : 0}
                                 />
                             )}
 
@@ -778,10 +800,10 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                                     y={cropArea.y}
                                     width={cropArea.width}
                                     height={cropArea.height}
-                                    stroke="rgba(255, 255, 255, 0.8)"
+                                    stroke="rgba(59, 130, 246, 0.8)"
                                     strokeWidth={2}
-                                    dash={[5, 5]}
-                                    fill="transparent"
+                                    dash={[8, 4]}
+                                    fill="rgba(59, 130, 246, 0.05)"
                                 />
                             )}
 

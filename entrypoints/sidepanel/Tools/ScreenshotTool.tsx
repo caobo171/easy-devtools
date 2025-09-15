@@ -7,11 +7,20 @@ import { ToolBar } from './ScreenshotTool/components/ToolBar';
 import { PropertyPanel } from './ScreenshotTool/components/PropertyPanel';
 import { KonvaEditor } from './ScreenshotTool/components/KonvaEditor';
 import { StatusBar } from './ScreenshotTool/components/StatusBar';
+import { ActionBar } from './ScreenshotTool/components/ActionBar';
 import { TextInputModal } from './ScreenshotTool/components/TextInputModal';
 
 export default function ScreenshotTool({ initialImage }: ScreenshotToolProps) {
     // Use the custom hook for state management
     const state = useScreenshotState(initialImage);
+    
+    // Canvas size state
+    const [canvasSize, setCanvasSize] = React.useState({ width: 800, height: 800 });
+    
+    // Handle canvas size changes
+    const handleSizeChange = (width: number, height: number) => {
+        setCanvasSize({ width, height });
+    };
 
 
     // Handle annotation updates from PropertyPanel
@@ -154,16 +163,33 @@ export default function ScreenshotTool({ initialImage }: ScreenshotToolProps) {
     };
 
     return (
-        <div className="h-full bg-gray-900 text-white flex flex-col">
-            {/* Top Toolbar */}
-            <div className="flex-shrink-0 p-4 border-b border-gray-700">
-                <ToolBar
-                    editMode={state.editMode}
-                    setEditMode={state.setEditMode}
-                    onTakeScreenshot={state.takeScreenshot}
-                    isCapturing={state.isCapturing}
-                    hasImage={!!state.capturedImage}
-                />
+        <div className="h-full text-white flex flex-col">
+            {/* Top Section - Toolbar and Action Bar */}
+            <div className="flex-shrink-0 p-4 z-10">
+                <div className="flex items-start justify-between gap-4">
+                    <ToolBar
+                        editMode={state.editMode}
+                        setEditMode={state.setEditMode}
+                        onTakeScreenshot={state.takeScreenshot}
+                        isCapturing={state.isCapturing}
+                        hasImage={!!state.capturedImage}
+                        onSizeChange={handleSizeChange}
+                        currentSize={canvasSize}
+                    />
+                    
+                    {/* Action Bar - Top Right */}
+                    <ActionBar
+                        capturedImage={state.capturedImage}
+                        cropArea={state.cropArea}
+                        onCopy={copyToClipboard}
+                        onDownload={downloadImage}
+                        onOpenInNewTab={openInNewTab}
+                        onApplyCrop={applyCrop}
+                        onReplaceImage={state.takeScreenshot}
+                        onRemoveImage={state.clearImage}
+                        editMode={state.editMode}
+                    />
+                </div>
             </div>
 
             {/* Main Content Area */}
@@ -184,7 +210,6 @@ export default function ScreenshotTool({ initialImage }: ScreenshotToolProps) {
                         onAnnotationsChange={state.setAnnotations}
                         onCurrentAnnotationChange={state.setCurrentAnnotation}
                         onCropAreaChange={state.setCropArea}
-
                         onTextInputRequest={(position) => {
                             state.setTextPosition(position);
                             state.setShowTextInput(true);
@@ -192,6 +217,8 @@ export default function ScreenshotTool({ initialImage }: ScreenshotToolProps) {
                         selectedAnnotationId={state.selectedAnnotationId}
                         onSelectedAnnotationChange={handleSelectedAnnotationChange}
                         onEditModeChange={state.setEditMode}
+                        canvasSize={canvasSize}
+                        setCanvasSize={setCanvasSize}
                     />
                 </div>
 
@@ -225,13 +252,8 @@ export default function ScreenshotTool({ initialImage }: ScreenshotToolProps) {
                 <StatusBar
                     capturedImage={state.capturedImage}
                     cropArea={state.cropArea}
-                    onCopy={copyToClipboard}
-                    onDownload={downloadImage}
-                    onOpenInNewTab={openInNewTab}
-                    onApplyCrop={applyCrop}
-                    onReplaceImage={state.takeScreenshot}
-                    onRemoveImage={state.clearImage}
                     editMode={state.editMode}
+                    currentSize={canvasSize}
                 />
             </div>
 
