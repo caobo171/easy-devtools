@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import Konva from 'konva';
 import { Stage, Layer, Image as KonvaImage, Rect, Circle, Arrow, Text, Transformer } from 'react-konva';
 import { CropArea, Annotation, EditMode, ImageAdjustments } from '../types';
@@ -55,50 +55,68 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
     const [backgroundImage, setBackgroundImage] = useState<HTMLImageElement | null>(null);
     // Using shared canvasSize from parent component
     const [isDrawing, setIsDrawing] = useState(false);
-    const [previewScale, setPreviewScale] = useState(1);
 
-    // Load image and calculate canvas size with proper aspect ratio
+    // Calculate image display size and position using useMemo for stability
+    const imageDisplaySize = useMemo(() => {
+        if (!image || canvasSize.width <= 0 || canvasSize.height <= 0) {
+            return { width: 0, height: 0 };
+        }
+        
+        // Available space for image (canvas minus minimum padding on all sides)
+        const availableWidth = canvasSize.width - (imageAdjustments.padding * 2);
+        const availableHeight = canvasSize.height - (imageAdjustments.padding * 2);
+        
+        // Calculate scale to fit image within available space while maintaining aspect ratio
+        const scaleX = availableWidth / image.width;
+        const scaleY = availableHeight / image.height;
+        const imageScale = Math.min(scaleX, scaleY);
+        
+        // Calculate actual image display dimensions
+        return {
+            width: image.width * imageScale,
+            height: image.height * imageScale
+        };
+    }, [image, canvasSize, imageAdjustments.padding]);
+
+    const imagePosition = useMemo(() => {
+        if (!image || canvasSize.width <= 0 || canvasSize.height <= 0) {
+            return { x: 0, y: 0 };
+        }
+        
+        // Center the image within the canvas
+        return {
+            x: (canvasSize.width - imageDisplaySize.width) / 2,
+            y: (canvasSize.height - imageDisplaySize.height) / 2
+        };
+    }, [canvasSize, imageDisplaySize]);
+
+    const previewScale = useMemo(() => {
+        if (canvasSize.width <= 0 || canvasSize.height <= 0) {
+            return 1;
+        }
+        
+        // Calculate preview scale for the entire canvas
+        const maxDisplayWidth = 800;
+        const maxDisplayHeight = 600;
+        const scaleX = maxDisplayWidth / canvasSize.width;
+        const scaleY = maxDisplayHeight / canvasSize.height;
+        return Math.min(scaleX, scaleY, 1); // Don't scale up, only down
+    }, [canvasSize]);
+
+	console.log('previewScale', previewScale, imageDisplaySize, canvasSize);
+
+    // Load image
     useEffect(() => {
         if (capturedImage) {
             const img = new window.Image();
             img.crossOrigin = 'anonymous';
             img.onload = () => {
                 setImage(img);
-                
-                // Canvas uses original image dimensions plus padding
-                const canvasWidth = img.width + (imageAdjustments.padding * 2);
-                const canvasHeight = img.height + (imageAdjustments.padding * 2);
-                
-                setCanvasSize({
-                    width: canvasWidth,
-                    height: canvasHeight
-                });
-                
-                // Calculate scale for preview display
-                const maxDisplayWidth = 800;
-                const maxDisplayHeight = 600;
-                const scaleX = maxDisplayWidth / canvasWidth;
-                const scaleY = maxDisplayHeight / canvasHeight;
-                const scale = Math.min(scaleX, scaleY, 1); // Don't scale up, only down
-                
-                setPreviewScale(scale);
             };
             img.src = capturedImage;
         }
-    }, [capturedImage, imageAdjustments.padding]);
+    }, [capturedImage]);
 
-    // Update preview scale when canvas size changes
-    useEffect(() => {
-        if (canvasSize.width > 0 && canvasSize.height > 0) {
-            const maxDisplayWidth = 800;
-            const maxDisplayHeight = 600;
-            const scaleX = maxDisplayWidth / canvasSize.width;
-            const scaleY = maxDisplayHeight / canvasSize.height;
-            const scale = Math.min(scaleX, scaleY, 1); // Don't scale up, only down
-            
-            setPreviewScale(scale);
-        }
-    }, [canvasSize]);
 
     // Process image with inset balance when settings change
     useEffect(() => {
@@ -629,7 +647,7 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
         <div className="flex-1 rounded-xl overflow-hidden relative bg-gradient-to-br from-white to-slate-50">
             <div className="w-full h-full flex items-center justify-center p-6">
                 <div 
-                    className="relative rounded-xl overflow-hidden shadow-xl ring-1 ring-slate-200/50 bg-white backdrop-blur-sm"
+                    className="relative rounded-xl shadow-xl ring-1 ring-slate-200/50 bg-white backdrop-blur-sm"
                     style={{
                         transform: `scale(${previewScale})`,
                         transformOrigin: 'center'
@@ -691,10 +709,10 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                                 <KonvaImage
                                     ref={imageRef}
                                     image={processedImage}
-                                    x={imageAdjustments.padding}
-                                    y={imageAdjustments.padding}
-                                    width={image?.width || 0}
-                                    height={image?.height || 0}
+                                    x={imagePosition.x}
+                                    y={imagePosition.y}
+                                    width={imageDisplaySize.width}
+                                    height={imageDisplaySize.height}
                                     cornerRadius={imageAdjustments.rounded}
                                     shadowColor="rgba(0, 0, 0, 0.1)"
                                     shadowBlur={imageAdjustments.shadow * 2}

@@ -343,7 +343,7 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({
                     )}
 
                     {/* Background Styles Grid */}
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-5 gap-2">
                         {predefinedBackgrounds[backgroundTab].map((bg, i) => (
                             <div
                                 key={i}
