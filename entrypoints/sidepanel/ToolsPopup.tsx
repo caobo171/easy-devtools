@@ -55,10 +55,11 @@ export default function ToolsPopup({ tools, selectedTool, onSelectTool }: ToolsP
   const popupRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
-  // Add screenshot tool to the list
+  // Add screenshot and video recording tools to the list
   const allTools = [
     ...tools,
-    { id: 'takeScreenshot', name: 'Screenshot Tool', icon: '📸', keywords: ['capture', 'image', 'screen', 'crop'] }
+    { id: 'takeScreenshot', name: 'Screenshot Tool', icon: '📸', keywords: ['capture', 'image', 'screen', 'crop'] },
+    { id: 'videoRecording', name: 'Video Recording', icon: '🎥', keywords: ['record', 'video', 'screen', 'capture'] }
   ];
 
   // Filter tools based on search query
@@ -88,14 +89,31 @@ export default function ToolsPopup({ tools, selectedTool, onSelectTool }: ToolsP
         // Send message to background to trigger screenshot
         browser.runtime.sendMessage(message);
         
-		new Promise(resolve => setTimeout(resolve, 200)).then(() => {
-			window.close();
-			// Close the popup
-			setIsVisible(false);
-			setSearchQuery('');
-		});
+        // Close the popup
+        setIsVisible(false);
+        setSearchQuery('');
       } catch (error) {
         console.error('Failed to trigger screenshot:', error);
+      }
+    } else if (toolId === 'videoRecording') {
+      // Handle video recording tool - open dedicated popup window
+      try {
+        // Create dedicated popup window for video recording
+        await browser.windows.create({
+          url: 'video-recording.html',
+          type: 'popup',
+          width: 450,
+          height: 700,
+          focused: true
+        });
+
+		window.close();
+
+        // Close the sidepanel popup
+        setIsVisible(false);
+        setSearchQuery('');
+      } catch (error) {
+        console.error('Failed to open video recording popup window:', error);
       }
     } else {
       // Handle regular tools

@@ -31,7 +31,6 @@ const tools: ToolWithComponent[] = [
 	{ id: 'hashGenerator', name: 'Hash Generator', icon: '🔐', keywords: ['md5', 'sha', 'hash'], component: HashGenerator },
 	{ id: 'colorConverter', name: 'Color Converter', icon: '🎨', keywords: ['hex', 'rgb', 'hsl', 'color'], component: ColorConverter },
 	{ id: 'markdownPreview', name: 'Markdown Preview', icon: '📝', keywords: ['md', 'markdown', 'preview'], component: MarkdownPreview },
-	{ id: 'videoRecording', name: 'Video Recording', icon: '🎥', keywords: ['record', 'video', 'screen', 'capture'], component: VideoRecordingTool },
 	{ id: 'generateFile', name: 'Generate File', icon: '📄', keywords: ['text', 'image', 'recognition'], component: GenerateFile },
 ];
 

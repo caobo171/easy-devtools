@@ -1,6 +1,17 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { EditMode } from '../types';
+import {
+  CursorArrowRaysIcon,
+  ScissorsIcon,
+  DocumentTextIcon,
+  ArrowUpRightIcon,
+  RectangleGroupIcon,
+  EllipsisHorizontalCircleIcon,
+  PaintBrushIcon,
+  PencilIcon,
+  EyeSlashIcon
+} from '@heroicons/react/24/outline';
 
 interface ToolBarProps {
     editMode: EditMode;
@@ -13,15 +24,15 @@ interface ToolBarProps {
 }
 
 const tools = [
-    { id: 'select', icon: '↖️', label: 'Select', tooltip: 'Select and move annotations' },
-    { id: 'crop', icon: '✂️', label: 'Crop', tooltip: 'Crop image area' },
-    { id: 'text', icon: '📝', label: 'Text', tooltip: 'Add text annotation' },
-    { id: 'arrow', icon: '↗️', label: 'Arrow', tooltip: 'Draw arrow' },
-    { id: 'rectangle', icon: '⬜', label: 'Rectangle', tooltip: 'Draw rectangle' },
-    { id: 'circle', icon: '⭕', label: 'Circle', tooltip: 'Draw circle' },
-    { id: 'highlight', icon: '🟨', label: 'Highlight', tooltip: 'Highlight area' },
-    { id: 'pen', icon: '✏️', label: 'Pen', tooltip: 'Free drawing' },
-    { id: 'blur', icon: '🔒', label: 'Blur', tooltip: 'Blur sensitive areas' },
+    { id: 'select', icon: CursorArrowRaysIcon, label: 'Select', tooltip: 'Select and move annotations' },
+    { id: 'crop', icon: ScissorsIcon, label: 'Crop', tooltip: 'Crop image area' },
+    { id: 'text', icon: DocumentTextIcon, label: 'Text', tooltip: 'Add text annotation' },
+    { id: 'arrow', icon: ArrowUpRightIcon, label: 'Arrow', tooltip: 'Draw arrow' },
+    { id: 'rectangle', icon: RectangleGroupIcon, label: 'Rectangle', tooltip: 'Draw rectangle' },
+    { id: 'circle', icon: EllipsisHorizontalCircleIcon, label: 'Circle', tooltip: 'Draw circle' },
+    { id: 'highlight', icon: PaintBrushIcon, label: 'Highlight', tooltip: 'Highlight area' },
+    { id: 'pen', icon: PencilIcon, label: 'Pen', tooltip: 'Free drawing' },
+    { id: 'blur', icon: EyeSlashIcon, label: 'Blur', tooltip: 'Blur sensitive areas' },
 ] as const;
 
 const sizePresets = [
@@ -122,42 +133,14 @@ export const ToolBar: React.FC<ToolBarProps> = ({
                     </Button>
                     
                     {showSizeDropdown && (
-                        <div className="absolute top-full left-0 mt-2 max-w-4/5 bg-white rounded-xl border border-slate-200 shadow-xl z-[9999] max-h-96 overflow-y-auto">
-                            {/* Custom Size Input */}
-                            <div className="p-3 border-b border-slate-200 bg-slate-50">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <input
-                                        type="number"
-                                        value={customWidth}
-                                        onChange={(e) => setCustomWidth(e.target.value)}
-                                        placeholder="Width"
-                                        className="flex-1 px-2 py-1 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-200"
-                                    />
-                                    <span className="text-slate-500">×</span>
-                                    <input
-                                        type="number"
-                                        value={customHeight}
-                                        onChange={(e) => setCustomHeight(e.target.value)}
-                                        placeholder="Height"
-                                        className="flex-1 px-2 py-1 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-200"
-                                    />
-                                    <Button
-                                        onClick={handleCustomSizeApply}
-                                        size="sm"
-                                        className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 text-sm"
-                                    >
-                                        Apply
-                                    </Button>
-                                </div>
-                            </div>
-                            
+                        <div className="absolute top-full left-0 mt-2 max-w-4/5 bg-white rounded-xl border border-slate-200 shadow-xl z-[9999] max-h-96 overflow-y-auto">                        
                             {/* Preset Categories */}
                             {Object.entries(groupedPresets).map(([category, presets]) => (
                                 <div key={category} className="p-2">
                                     <div className="text-xs font-semibold text-slate-600 px-2 py-1 mb-1">
                                         {category === 'X' ? '𝕏' : category}
                                     </div>
-                                    <div className="grid grid-cols-2 gap-1">
+                                    <div className="grid grid-cols-3 gap-1">
                                         {presets.map((preset, index) => (
                                             <button
                                                 key={`${category}-${index}`}
@@ -183,24 +166,33 @@ export const ToolBar: React.FC<ToolBarProps> = ({
             <div className="w-px h-6 bg-slate-200" />
             
             {/* Tools */}
-            {hasImage && tools.map((tool) => (
-                <Button
-                    key={tool.id}
-                    onClick={() => setEditMode(editMode === tool.id ? null : tool.id as EditMode)}
-                    variant="ghost"
-                    size="sm"
-                    className={`
-                        w-10 h-10 p-0 rounded-lg transition-all duration-200
-                        ${editMode === tool.id 
-                            ? 'bg-blue-500 text-white shadow-md ring-2 ring-blue-200' 
-                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-800 hover:shadow-sm'
-                        }
-                    `}
-                    title={tool.tooltip}
-                >
-                    <span className="text-lg">{tool.icon}</span>
-                </Button>
-            ))}
+            {hasImage && tools.map((tool) => {
+                const IconComponent = tool.icon;
+                return (
+                    <div key={tool.id} className="relative group">
+                        <Button
+                            onClick={() => setEditMode(editMode === tool.id ? null : tool.id as EditMode)}
+                            variant="ghost"
+                            size="sm"
+                            className={`
+                                w-10 h-10 p-0 rounded-lg transition-all duration-200
+                                ${editMode === tool.id 
+                                    ? 'bg-blue-500 text-white shadow-md ring-2 ring-blue-200' 
+                                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-800 hover:shadow-sm'
+                                }
+                            `}
+                        >
+                            <IconComponent className="w-5 h-5" />
+                        </Button>
+                        
+                        {/* Tooltip */}
+                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+                            {tool.tooltip}
+                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                        </div>
+                    </div>
+                );
+            })}
         </div>
     );
 };

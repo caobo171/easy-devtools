@@ -716,9 +716,6 @@ export default function VideoRecordingTool({ initialVideoData, initialVideoType,
                                 <Button onClick={downloadVideo} variant="outline" size="sm">
                                     💾 Download
                                 </Button>
-                                <Button onClick={openRecordedVideoInNewTab} variant="outline" size="sm">
-                                    🔗 Open in New Tab
-                                </Button>
                                 <Button onClick={clearRecording} variant="outline" size="sm">
                                     🗑️ Clear
                                 </Button>
@@ -791,9 +788,6 @@ export default function VideoRecordingTool({ initialVideoData, initialVideoType,
                                     <div className="flex gap-2">
                                         <Button onClick={downloadUploadedVideo} variant="outline" size="sm">
                                             💾 Download
-                                        </Button>
-                                        <Button onClick={openUploadedVideoInNewTab} variant="outline" size="sm">
-                                            🔗 Open in New Tab
                                         </Button>
                                         <Button onClick={clearUploadedVideo} variant="outline" size="sm">
                                             🗑️ Clear
