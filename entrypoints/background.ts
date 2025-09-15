@@ -3,6 +3,28 @@ import ExtMessage, { MessageFrom, MessageType, Tools } from "@/entrypoints/types
 import { db, type AppState, type ToolState } from "@/utils/db";
 
 /**
+ * Closes the sidepanel by toggling it
+ * 
+ * @param sendResponse - Optional callback function to send response back
+ */
+function closeSidepanel(sendResponse?: (response: any) => void): void {
+    // We can't directly close the sidepanel, but we can collapse it
+    // by opening an empty one or toggling it
+    browser.tabs.query({ active: true, currentWindow: true }).then(tabs => {
+        if (tabs[0]?.id) {
+            // Toggle the sidepanel by opening it again (which will collapse it if already open)
+            browser.sidePanel.open({ tabId: tabs[0].id }).then(() => {
+                console.log('Sidepanel toggled to close');
+                if (sendResponse) sendResponse({ success: true });
+            }).catch(error => {
+                console.error('Failed to toggle sidepanel:', error);
+                if (sendResponse) sendResponse({ success: false, error: String(error) });
+            });
+        }
+    });
+}
+
+/**
  * Saves application state to IndexedDB
  * Handles both full and partial state updates
  * 
@@ -160,14 +182,6 @@ export default defineBackground(() => {
             case Tools.takeScreenshot.id:
                 message = new ExtMessage(MessageType.takeScreenshot);
                 message.from = MessageFrom.background;
-
-                saveAppState({
-                    messageType: MessageType.savePartialAppState,
-                    currentSelectedTool: Tools.takeScreenshot.id,
-					toolState: {
-                        [Tools.takeScreenshot.id]: { }
-                    }
-                } as unknown as ExtMessage);
                 break;
 
             case MessageType.openInSidebar:
@@ -198,6 +212,10 @@ export default defineBackground(() => {
 
     // Use a non-async listener to ensure we can return true synchronously
     browser.runtime.onMessage.addListener((message: ExtMessage, sender, sendResponse: (message: any) => void) => {
+
+		console.log("background message:")
+		console.log(message)
+
         if (message.messageType === MessageType.changeTheme || message.messageType === MessageType.changeLocale) {
             // Handle theme/locale changes asynchronously
             browser.tabs.query({ active: true, currentWindow: true }).then(tabs => {
@@ -209,7 +227,25 @@ export default defineBackground(() => {
                 }
             });
             return true;
-        } else if (message.messageType === MessageType.saveAppState || message.messageType === MessageType.savePartialAppState) {
+        } else if (message.messageType === MessageType.takeScreenshot) {
+            // Handle take screenshot from context menu
+			
+			browser.tabs.query({ active: true, currentWindow: true }).then(tabs => {
+				if (tabs[0]?.id) {
+					let message = new ExtMessage(MessageType.takeScreenshot);
+					message.from = MessageFrom.background;
+		
+					new Promise(resolve => setTimeout(resolve, 200)).then(() => {
+						browser.tabs.sendMessage(tabs[0].id!, message);
+					});
+		
+					return true;
+
+				}
+			})
+
+			return true;
+		} else if (message.messageType === MessageType.saveAppState || message.messageType === MessageType.savePartialAppState) {
             // Call the extracted function to save app state
             return saveAppState(message, sendResponse);
         } else if (message.messageType === MessageType.loadAppState) {
@@ -231,20 +267,7 @@ export default defineBackground(() => {
             // Handle closing the sidepanel
             if (sender.tab?.id) {
                 try {
-                    // We can't directly close the sidepanel, but we can collapse it
-                    // by opening an empty one or toggling it
-                    browser.tabs.query({ active: true, currentWindow: true }).then(tabs => {
-                        if (tabs[0]?.id) {
-                            // Toggle the sidepanel by opening it again (which will collapse it if already open)
-                            browser.sidePanel.open({ tabId: tabs[0].id }).then(() => {
-                                console.log('Sidepanel toggled to close');
-                                sendResponse({ success: true });
-                            }).catch(error => {
-                                console.error('Failed to toggle sidepanel:', error);
-                                sendResponse({ success: false, error: String(error) });
-                            });
-                        }
-                    });
+                    closeSidepanel(sendResponse);
                 } catch (error) {
                     console.error('Error handling closeSidepanel message:', error);
                     sendResponse({ success: false, error: String(error) });

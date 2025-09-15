@@ -16,7 +16,7 @@ import MarkdownPreview from './Tools/MarkdownPreview';
 import ScreenshotTool from './Tools/ScreenshotTool';
 import VideoRecordingTool from './Tools/VideoEditingTool';
 import { ToolStateProvider, useToolState } from '@/lib/toolStateContext';
-import Sidebar, { Tool } from './Sidebar';
+import ToolsPopup, { Tool } from './ToolsPopup';
 import GenerateFile from './Tools/GenerateFile';
 
 type ToolWithComponent = Tool & {
@@ -31,7 +31,6 @@ const tools: ToolWithComponent[] = [
 	{ id: 'hashGenerator', name: 'Hash Generator', icon: '🔐', keywords: ['md5', 'sha', 'hash'], component: HashGenerator },
 	{ id: 'colorConverter', name: 'Color Converter', icon: '🎨', keywords: ['hex', 'rgb', 'hsl', 'color'], component: ColorConverter },
 	{ id: 'markdownPreview', name: 'Markdown Preview', icon: '📝', keywords: ['md', 'markdown', 'preview'], component: MarkdownPreview },
-	{ id: 'takeScreenshot', name: 'Screenshot Tool', icon: '📸', keywords: ['capture', 'image', 'screen', 'crop'], component: ScreenshotTool },
 	{ id: 'videoRecording', name: 'Video Recording', icon: '🎥', keywords: ['record', 'video', 'screen', 'capture'], component: VideoRecordingTool },
 	{ id: 'generateFile', name: 'Generate File', icon: '📄', keywords: ['text', 'image', 'recognition'], component: GenerateFile },
 ];
@@ -99,24 +98,16 @@ const AppContent = () => {
 
 
 	return (
-		<div className={cn(theme, 'h-full flex overflow-hidden')}>
-			{/* Main workspace */}
-			<div className="flex-1 flex flex-col min-w-0">
-				{/* Header */}
-				<div className="border-b p-4">
-					<h1 className="text-xl font-semibold">DevTools Extension</h1>
-				</div>
-
-				{/* Main content area */}
-				<div className="flex-1 p-4 overflow-auto">
-					<div className="w-full min-w-0">
-						{renderSelectedTool()}
-					</div>
+		<div className={cn(theme, 'h-full flex flex-col overflow-hidden relative')}>
+			{/* Main content area */}
+			<div className="flex-1 p-4 overflow-auto">
+				<div className="w-full min-w-0">
+					{renderSelectedTool()}
 				</div>
 			</div>
 
-			{/* Tools sidebar */}
-			<Sidebar
+			{/* Tools popup */}
+			<ToolsPopup
 				tools={tools}
 				selectedTool={currentSelectedTool}
 				onSelectTool={handleToolSelect}
