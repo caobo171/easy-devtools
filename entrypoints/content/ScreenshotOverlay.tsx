@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { browser } from 'wxt/browser';
+import { Button } from '../../components/ui/button';
+import { CameraIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { MessageType } from '../types';
-import { Button } from '@/components/ui/button';
 
 interface ScreenshotOverlayProps {
   onCapture: (imageData: string) => void;
@@ -435,7 +435,7 @@ export const ScreenshotOverlay: React.FC<ScreenshotOverlayProps> = ({ onCapture,
       {/* Controls when selection is complete */}
       {mode === 'complete' && selectionRect && (
         <div
-          className="absolute bg-black bg-opacity-75 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+          className="absolute bg-black bg-opacity-75 text-white px-4 py-4 rounded-lg flex items-center gap-2"
           style={{
             top: selectionRect.y + selectionRect.height - 100,
             left: selectionRect.x + selectionRect.width / 2,
@@ -453,8 +453,9 @@ export const ScreenshotOverlay: React.FC<ScreenshotOverlayProps> = ({ onCapture,
               e.stopPropagation();
               takeScreenshot();
             }}
-            className="bg-blue-500 hover:bg-blue-600"
+            className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 border-0 flex items-center gap-2"
           >
+            <CameraIcon className="w-4 h-4" />
             Capture
           </Button>
           <Button
@@ -465,8 +466,9 @@ export const ScreenshotOverlay: React.FC<ScreenshotOverlayProps> = ({ onCapture,
               setMode('selecting');
               setSelectionRect(null);
             }}
-            className="text-white border-white hover:bg-gray-700"
+            className="bg-white/90 hover:bg-white text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 border border-gray-200 backdrop-blur-sm flex items-center gap-2"
           >
+            <XMarkIcon className="w-4 h-4" />
             Cancel
           </Button>
         </div>
