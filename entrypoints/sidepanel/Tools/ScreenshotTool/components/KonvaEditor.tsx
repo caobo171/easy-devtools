@@ -572,15 +572,16 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                                 newX = node.x() - (annotation.width || 0) / 2;
                                 newY = node.y() - (annotation.height || 0) / 2;
                             } else if (annotation.type === 'arrow') {
-                                // For arrows, get the actual points from the dragged node
-                                const points = node.points();
+                                // For arrows, calculate the offset and apply it to both points
+                                const deltaX = node.x();
+                                const deltaY = node.y();
 
                                 return {
                                     ...ann,
-                                    x: points[0],
-                                    y: points[1],
-                                    endX: points[2],
-                                    endY: points[3],
+                                    x: annotation.x + deltaX,
+                                    y: annotation.y + deltaY,
+                                    endX: (annotation.endX || annotation.x) + deltaX,
+                                    endY: (annotation.endY || annotation.y) + deltaY,
                                 };
                             }
 
@@ -593,6 +594,11 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                         return ann;
                     });
                     onAnnotationsChange(updatedAnnotations);
+
+                    // Reset the arrow node position to prevent accumulating offsets
+                    if (annotation.type === 'arrow') {
+                        node.position({ x: 0, y: 0 });
+                    }
 
                     // Update selected annotation
                     const updatedSelectedAnnotation = updatedAnnotations.find(ann => ann.id === annotation.id);
