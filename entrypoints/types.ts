@@ -17,6 +17,7 @@ export enum MessageType {
     analyzeText = "analyzeText",
 
     takeScreenshot = "TAKE_SCREENSHOT",
+    openScreenshotEditing = "OPEN_SCREENSHOT_EDITING",
     screenshotCaptured = "SCREENSHOT_CAPTURED",
     captureVisibleTab = "CAPTURE_VISIBLE_TAB",
     openVideoRecording = "OPEN_VIDEO_RECORDING",

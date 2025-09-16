@@ -141,6 +141,15 @@ export default defineBackground(() => {
         documentUrlPatterns: ["*://*/*", "devtools://*/*"]
     });
 
+
+	browser.contextMenus.create({
+        id: MessageType.openScreenshotEditing,
+        parentId: "devtools-parent",
+        title: "📸 Open screenshot editor",
+        contexts: ["selection", "page", "editable", "frame", "link", "image"],
+        documentUrlPatterns: ["*://*/*", "devtools://*/*"]
+    });
+
     browser.contextMenus.create({
         id: MessageType.openInSidebar,
         parentId: "devtools-parent",
@@ -183,6 +192,11 @@ export default defineBackground(() => {
                 message = new ExtMessage(MessageType.takeScreenshot);
                 message.from = MessageFrom.background;
                 break;
+
+			case MessageType.openScreenshotEditing:
+				message = new ExtMessage(MessageType.openScreenshotEditing);
+				message.from = MessageFrom.background;
+				break;
 
             case MessageType.openInSidebar:
 

@@ -96,6 +96,12 @@ export default () => {
                 sendResponse({ success: true });
                 return true;
             }
+
+			if (message.messageType === MessageType.openScreenshotEditing) {
+                setShowScreenshotPopup(true);
+                sendResponse({ success: true });
+                return true;
+            }
             
             return false;
         };
