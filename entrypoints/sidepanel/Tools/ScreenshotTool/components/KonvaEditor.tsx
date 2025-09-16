@@ -24,6 +24,7 @@ interface KonvaEditorProps {
     canvasSize: { width: number; height: number };
     setCanvasSize: (size: { width: number; height: number }) => void;
     onExportRequest?: () => void;
+    setCapturedImage: (imageData: string | null) => void;
 }
 
 export const KonvaEditor: React.FC<KonvaEditorProps> = ({
@@ -45,8 +46,11 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
     onSelectedAnnotationChange,
     onEditModeChange,
     canvasSize,
-    setCanvasSize
+    setCanvasSize,
+    setCapturedImage
 }) => {
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const maxFileSize = 2; // 2MB
     const imageRef = useRef<Konva.Image>(null);
     const backgroundImageRef = useRef<Konva.Image>(null);
     const transformerRef = useRef<Konva.Transformer>(null);
@@ -627,14 +631,89 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
         }
     };
 
+
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (files && files.length > 0) {
+            const file = files[0];
+            
+            // Check file size (2MB limit)
+            if (file.size > maxFileSize * 1024 * 1024) {
+                alert(`File size exceeds ${maxFileSize}MB limit`);
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                if (event.target?.result && typeof event.target.result === 'string') {
+                    setCapturedImage(event.target.result);
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+    };
+
+    const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const files = e.dataTransfer.files;
+        if (files && files.length > 0) {
+            const file = files[0];
+            
+            // Check if it's an image
+            if (!file.type.startsWith('image/')) {
+                alert('Please select an image file');
+                return;
+            }
+            
+            // Check file size (2MB limit)
+            if (file.size > maxFileSize * 1024 * 1024) {
+                alert(`File size exceeds ${maxFileSize}MB limit`);
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                if (event.target?.result && typeof event.target.result === 'string') {
+                    setCapturedImage(event.target.result);
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const triggerFileInput = () => {
+        if (fileInputRef.current) {
+            fileInputRef.current.click();
+        }
+    };
+
     if (!capturedImage) {
         return (
-            <div className="flex-1 flex items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-gradient-to-br from-slate-50 to-slate-100 transition-all duration-300 hover:border-slate-400 hover:from-slate-100 hover:to-slate-200">
+            <div 
+                className="flex-1 flex items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-gradient-to-br from-slate-50 to-slate-100 transition-all duration-300 hover:border-slate-400 hover:from-slate-100 hover:to-slate-200 cursor-pointer m-10"
+                onClick={triggerFileInput}
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+            >
+                <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    className="hidden" 
+                    accept="image/*"
+                    onChange={handleFileSelect}
+                />
                 <div className="text-center p-12">
                     <div className="text-6xl mb-6 animate-pulse">📷</div>
                     <h3 className="text-slate-800 text-xl font-semibold mb-3 tracking-tight">Drag and drop a photo here</h3>
                     <p className="text-slate-500 mb-4 font-medium">or click to select a photo</p>
-                    <p className="text-slate-400 text-sm bg-white/60 px-3 py-1 rounded-full inline-block backdrop-blur-sm">Max file size: 2 MB</p>
+                    <p className="text-slate-400 text-sm bg-white/60 px-3 py-1 rounded-full inline-block backdrop-blur-sm">Max file size: {maxFileSize} MB</p>
                 </div>
             </div>
         );

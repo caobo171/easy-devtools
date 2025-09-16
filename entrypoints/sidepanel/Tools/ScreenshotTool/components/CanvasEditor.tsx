@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { CropArea, Annotation, EditMode, ImageAdjustments } from '../types';
 
 interface CanvasEditorProps {
@@ -14,6 +14,7 @@ interface CanvasEditorProps {
     onMouseMove: (e: React.MouseEvent<HTMLCanvasElement>) => void;
     onMouseUp: () => void;
     drawImageWithAnnotations: () => void;
+    onImageSelect?: (imageData: string) => void;
 }
 
 export const CanvasEditor: React.FC<CanvasEditorProps> = ({
@@ -28,22 +29,99 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = ({
     onMouseDown,
     onMouseMove,
     onMouseUp,
-    drawImageWithAnnotations
+    drawImageWithAnnotations,
+    onImageSelect
 }) => {
+    const fileInputRef = useRef<HTMLInputElement>(null);
+	const maxFileSize = 2;
     useEffect(() => {
         if (capturedImage) {
             drawImageWithAnnotations();
         }
     }, [capturedImage, cropArea, annotations, currentAnnotation, imageAdjustments]);
 
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (files && files.length > 0) {
+            const file = files[0];
+            
+            // Check file size (2MB limit)
+            if (file.size > maxFileSize * 1024 * 1024) {
+                alert(`File size exceeds ${maxFileSize}MB limit`);
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                if (event.target?.result && typeof event.target.result === 'string' && onImageSelect) {
+                    onImageSelect(event.target.result);
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+    };
+
+    const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const files = e.dataTransfer.files;
+        if (files && files.length > 0) {
+            const file = files[0];
+            
+            // Check if it's an image
+            if (!file.type.startsWith('image/')) {
+                alert('Please select an image file');
+                return;
+            }
+            
+            // Check file size (2MB limit)
+            if (file.size > 2 * 1024 * 1024) {
+                alert('File size exceeds 2MB limit');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                if (event.target?.result && typeof event.target.result === 'string' && onImageSelect) {
+                    onImageSelect(event.target.result);
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const triggerFileInput = () => {
+        if (fileInputRef.current) {
+            fileInputRef.current.click();
+        }
+    };
+
     if (!capturedImage) {
         return (
-            <div className="flex-1 flex items-center justify-center bg-gray-800 rounded-lg border-2 border-dashed border-gray-600">
+            <div 
+                className="flex-1 flex items-center justify-center bg-gray-800 rounded-lg border-2 border-dashed border-gray-600 cursor-pointer m-10"
+                onClick={triggerFileInput}
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+            >
+                <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    className="hidden" 
+                    accept="image/*"
+                    onChange={handleFileSelect}
+                />
                 <div className="text-center p-12">
                     <div className="text-6xl mb-4">📷</div>
                     <h3 className="text-white text-xl font-semibold mb-2">Drag and drop a photo here,</h3>
                     <p className="text-gray-400 mb-4">or click to select a photo</p>
-                    <p className="text-gray-500 text-sm">a file with 2 MB</p>
+                    <p className="text-gray-500 text-sm">Max file size: {maxFileSize} MB</p>
                 </div>
             </div>
         );

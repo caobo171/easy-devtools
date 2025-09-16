@@ -133,14 +133,14 @@ export const ToolBar: React.FC<ToolBarProps> = ({
                     </Button>
                     
                     {showSizeDropdown && (
-                        <div className="absolute top-full left-0 mt-2 max-w-4/5 bg-white rounded-xl border border-slate-200 shadow-xl z-[9999] max-h-96 overflow-y-auto">                        
+                        <div className="absolute top-full left-0 mt-2 w-[600px] bg-white rounded-xl border border-slate-200 shadow-xl z-[9999] max-h-96 overflow-y-auto">                        
                             {/* Preset Categories */}
                             {Object.entries(groupedPresets).map(([category, presets]) => (
                                 <div key={category} className="p-2">
                                     <div className="text-xs font-semibold text-slate-600 px-2 py-1 mb-1">
                                         {category === 'X' ? '𝕏' : category}
                                     </div>
-                                    <div className="grid grid-cols-3 gap-1">
+                                    <div className="grid grid-cols-4 gap-1">
                                         {presets.map((preset, index) => (
                                             <button
                                                 key={`${category}-${index}`}

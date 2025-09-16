@@ -219,6 +219,7 @@ export default function ScreenshotTool({ initialImage }: ScreenshotToolProps) {
                         onEditModeChange={state.setEditMode}
                         canvasSize={canvasSize}
                         setCanvasSize={setCanvasSize}
+                        setCapturedImage={state.setCapturedImage}
                     />
                 </div>
 

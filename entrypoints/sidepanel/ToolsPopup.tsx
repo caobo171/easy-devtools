@@ -88,7 +88,7 @@ export default function ToolsPopup({ tools, selectedTool, onSelectTool }: ToolsP
         
         // Send message to background to trigger screenshot
         browser.runtime.sendMessage(message);
-        
+        window.close();
         // Close the popup
         setIsVisible(false);
         setSearchQuery('');
