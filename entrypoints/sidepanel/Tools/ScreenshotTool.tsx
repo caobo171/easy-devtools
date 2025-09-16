@@ -187,6 +187,7 @@ export default function ScreenshotTool({ initialImage }: ScreenshotToolProps) {
                         onApplyCrop={applyCrop}
                         onReplaceImage={state.takeScreenshot}
                         onRemoveImage={state.clearImage}
+
                         editMode={state.editMode}
                     />
                 </div>
@@ -220,6 +221,9 @@ export default function ScreenshotTool({ initialImage }: ScreenshotToolProps) {
                         canvasSize={canvasSize}
                         setCanvasSize={setCanvasSize}
                         setCapturedImage={state.setCapturedImage}
+
+						setRealImage={state.handleSetRealImage}
+						realImage={state.realImage}
                     />
                 </div>
 

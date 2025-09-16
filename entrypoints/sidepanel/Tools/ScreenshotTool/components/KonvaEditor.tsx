@@ -25,6 +25,9 @@ interface KonvaEditorProps {
     setCanvasSize: (size: { width: number; height: number }) => void;
     onExportRequest?: () => void;
     setCapturedImage: (imageData: string | null) => void;
+
+	realImage: HTMLImageElement | null;
+	setRealImage: (image: HTMLImageElement) => void;
 }
 
 export const KonvaEditor: React.FC<KonvaEditorProps> = ({
@@ -47,14 +50,16 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
     onEditModeChange,
     canvasSize,
     setCanvasSize,
-    setCapturedImage
+    setCapturedImage,
+
+	realImage,
+	setRealImage
 }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const maxFileSize = 2; // 2MB
     const imageRef = useRef<Konva.Image>(null);
     const backgroundImageRef = useRef<Konva.Image>(null);
     const transformerRef = useRef<Konva.Transformer>(null);
-    const [image, setImage] = useState<HTMLImageElement | null>(null);
     const [processedImage, setProcessedImage] = useState<HTMLImageElement | null>(null);
     const [backgroundImage, setBackgroundImage] = useState<HTMLImageElement | null>(null);
     // Using shared canvasSize from parent component
@@ -62,7 +67,7 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
 
     // Calculate image display size and position using useMemo for stability
     const imageDisplaySize = useMemo(() => {
-        if (!image || canvasSize.width <= 0 || canvasSize.height <= 0) {
+        if (!realImage || canvasSize.width <= 0 || canvasSize.height <= 0) {
             return { width: 0, height: 0 };
         }
         
@@ -71,19 +76,19 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
         const availableHeight = canvasSize.height - (imageAdjustments.padding * 2);
         
         // Calculate scale to fit image within available space while maintaining aspect ratio
-        const scaleX = availableWidth / image.width;
-        const scaleY = availableHeight / image.height;
+        const scaleX = availableWidth / realImage.width;
+        const scaleY = availableHeight / realImage.height;
         const imageScale = Math.min(scaleX, scaleY);
         
         // Calculate actual image display dimensions
         return {
-            width: image.width * imageScale,
-            height: image.height * imageScale
+            width: realImage.width * imageScale,
+            height: realImage.height * imageScale
         };
-    }, [image, canvasSize, imageAdjustments.padding]);
+    }, [realImage, canvasSize, imageAdjustments.padding]);
 
     const imagePosition = useMemo(() => {
-        if (!image || canvasSize.width <= 0 || canvasSize.height <= 0) {
+        if (!realImage || canvasSize.width <= 0 || canvasSize.height <= 0) {
             return { x: 0, y: 0 };
         }
         
@@ -115,7 +120,7 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
             const img = new window.Image();
             img.crossOrigin = 'anonymous';
             img.onload = () => {
-                setImage(img);
+                setRealImage(img);
             };
             img.src = capturedImage;
         }
@@ -124,14 +129,16 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
 
     // Process image with inset balance when settings change
     useEffect(() => {
-        if (image) {
+        if (realImage) {
             if (imageAdjustments.insetBalance || (imageAdjustments.inset > 0)) {
-                createProcessedImageWithInset(image);
+                createProcessedImageWithInset(realImage);
             } else {
-                setProcessedImage(image);
+                setProcessedImage(realImage);
             }
-        }
-    }, [imageAdjustments.insetBalance, imageAdjustments.inset, image]);
+        } else {
+			setProcessedImage(null);
+		}
+    }, [imageAdjustments.insetBalance, imageAdjustments.inset, realImage]);
 
     // Load background image when background changes
     useEffect(() => {
@@ -158,7 +165,7 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
 
     // Apply filters to image when adjustments change
     useEffect(() => {
-        if (imageRef.current && image) {
+        if (imageRef.current && realImage) {
             const konvaImage = imageRef.current;
 
             // Apply Konva filters (excluding blur - that's for background only)
@@ -174,7 +181,7 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
             konvaImage.cache();
             konvaImage.getLayer()?.batchDraw();
         }
-    }, [imageAdjustments, image]);
+    }, [imageAdjustments, realImage]);
 
     // Handle transformer selection
     useEffect(() => {

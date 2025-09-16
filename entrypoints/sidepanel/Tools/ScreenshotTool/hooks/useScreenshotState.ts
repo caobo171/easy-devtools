@@ -6,6 +6,8 @@ import Konva from 'konva';
 
 export const useScreenshotState = (initialImage?: string | null) => {
     const [capturedImage, setCapturedImage] = useState<string | null>(null);
+
+	const [realImage, setRealImage] = useState<HTMLImageElement | null>(null);
     const [isCapturing, setIsCapturing] = useState(false);
     const [cropArea, setCropArea] = useState<CropArea | null>(null);
     const [isDragging, setIsDragging] = useState(false);
@@ -40,6 +42,24 @@ export const useScreenshotState = (initialImage?: string | null) => {
 
     const stageRef = useRef<Konva.Stage>(null);
     const imageRef = useRef<HTMLImageElement>(null);
+
+	// Load image
+	useEffect(() => {
+		if (capturedImage) {
+			const img = new window.Image();
+			img.crossOrigin = 'anonymous';
+			img.onload = () => {
+				setRealImage(img);
+			};
+			img.src = capturedImage;
+		}
+	}, [capturedImage]);
+
+
+	const handleSetRealImage = (image: HTMLImageElement) => {
+		setRealImage(image);
+	}
+	
 
     useEffect(() => {
         if (initialImage) {
@@ -86,6 +106,7 @@ export const useScreenshotState = (initialImage?: string | null) => {
         setCropArea(null);
         setAnnotations([]);
         setEditMode(null);
+		setRealImage(null);
         setSelectedAnnotationId(null);
         setImageAdjustments({
             brightness: 1,
@@ -161,6 +182,9 @@ export const useScreenshotState = (initialImage?: string | null) => {
         takeScreenshot,
         clearImage,
         clearAnnotations,
-        undoLastAnnotation
+        undoLastAnnotation,
+
+		realImage,
+		handleSetRealImage,
     };
 };
