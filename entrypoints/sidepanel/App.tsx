@@ -66,9 +66,6 @@ const AppContent = () => {
 			} else if (message.messageType == MessageType.convertToReadableDateInSidepanel) {
 				// Show DateFormat tool when date conversion is requested
 				handleToolSelect('convertToReadableDate');
-			} else if (message.messageType == MessageType.takeScreenshot) {
-				// Handle take screenshot from context menu
-				handleToolSelect('takeScreenshot');
 			}
 		});
 
