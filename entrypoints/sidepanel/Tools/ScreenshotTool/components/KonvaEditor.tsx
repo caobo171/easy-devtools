@@ -64,6 +64,7 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
     const [backgroundImage, setBackgroundImage] = useState<HTMLImageElement | null>(null);
     // Using shared canvasSize from parent component
     const [isDrawing, setIsDrawing] = useState(false);
+    const [isDraggingArrowPoint, setIsDraggingArrowPoint] = useState<{ annotationId: string; point: 'start' | 'end' } | null>(null);
 
     // Calculate image display size and position using useMemo for stability
     const imageDisplaySize = useMemo(() => {
@@ -186,10 +187,16 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
     // Handle transformer selection
     useEffect(() => {
         if (selectedAnnotationId && transformerRef.current && stageRef.current) {
+            const selectedAnnotation = annotations.find(ann => ann.id === selectedAnnotationId);
             const selectedNode = stageRef.current.findOne(`#${selectedAnnotationId}`);
-            if (selectedNode) {
+            
+            // Don't show transformer for arrows - they should only be draggable
+            if (selectedNode && selectedAnnotation?.type !== 'arrow') {
                 console.log('Selected node again:', selectedNode);
                 transformerRef.current.nodes([selectedNode]);
+                transformerRef.current.getLayer()?.batchDraw();
+            } else if (transformerRef.current) {
+                transformerRef.current.nodes([]);
                 transformerRef.current.getLayer()?.batchDraw();
             }
         } else if (transformerRef.current) {
@@ -202,6 +209,15 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
         if (editMode === 'select') {
             const clickedOnEmpty = e.target === e.target.getStage();
             const clickedOnTransformer = e.target.getParent()?.className === 'Transformer';
+
+            // Check if clicking on arrow control points
+            const targetName = e.target.name();
+            if (targetName?.startsWith('arrow-point-')) {
+                const [, , annotationId, point] = targetName.split('-');
+                setIsDraggingArrowPoint({ annotationId, point: point as 'start' | 'end' });
+                setIsDrawing(true);
+                return;
+            }
 
             // Don't clear selection if clicking on transformer handles
             if (clickedOnTransformer) {
@@ -448,13 +464,29 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
     };
 
     const handleStageMouseMove = (e: Konva.KonvaEventObject<MouseEvent>) => {
-        if (!isDrawing || editMode === 'select') return;
-
         const stage = stageRef.current;
         if (!stage) return;
 
         const pos = stage.getPointerPosition();
         if (!pos) return;
+
+        // Handle arrow point dragging
+        if (isDraggingArrowPoint && editMode === 'select') {
+            const updatedAnnotations = annotations.map(ann => {
+                if (ann.id === isDraggingArrowPoint.annotationId) {
+                    if (isDraggingArrowPoint.point === 'start') {
+                        return { ...ann, x: pos.x, y: pos.y };
+                    } else {
+                        return { ...ann, endX: pos.x, endY: pos.y };
+                    }
+                }
+                return ann;
+            });
+            onAnnotationsChange(updatedAnnotations);
+            return;
+        }
+
+        if (!isDrawing || editMode === 'select') return;
 
         console.log('editMode', editMode);
 
@@ -492,6 +524,12 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
         if (!isDrawing) return;
 
         setIsDrawing(false);
+
+        // Reset arrow point dragging
+        if (isDraggingArrowPoint) {
+            setIsDraggingArrowPoint(null);
+            return;
+        }
 
         if (editMode === 'crop') {
             // Crop area is already updated in onCropAreaChange
@@ -884,8 +922,6 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                                                         const newWidth = (ann.width || 0);
                                                         const newHeight = (ann.height || 0);
 
-
-
                                                         // Handle different annotation types for transform
                                                         if (ann.type === 'circle') {
                                                             // For circles, adjust position since they're rendered at center
@@ -896,16 +932,8 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                                                                 scaleX,
                                                                 scaleY,
                                                             };
-                                                        } else if (ann.type === 'arrow') {
-                                                            // For arrows, get the actual points
-
-                                                            return {
-                                                                ...ann,
-                                                                scaleX,
-                                                                scaleY,
-                                                            };
                                                         } else {
-                                                            // For rectangles and other shapes
+                                                            // For rectangles and other shapes (arrows are excluded from transformer)
                                                             return {
                                                                 ...ann,
                                                                 x: selectedNode.x(),
@@ -920,12 +948,6 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                                                     return ann;
                                                 });
                                                 onAnnotationsChange(updatedAnnotations);
-
-                                                // Update selected annotation
-                                                // const updatedSelectedAnnotation = updatedAnnotations.find(ann => ann.id === selectedId);
-                                                // if (updatedSelectedAnnotation) {
-                                                //     onSelectedAnnotationChange(updatedSelectedAnnotation);
-                                                // }
                                             }
                                         }
                                     }}
@@ -937,6 +959,44 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
 
                             {/* Render current annotation being drawn (only if not in annotations array) */}
                             {currentAnnotation && !annotations.find(ann => ann.id === currentAnnotation.id) && renderAnnotation(currentAnnotation)}
+
+                            {/* Render arrow control points for selected arrow */}
+                            {selectedAnnotationId && editMode === 'select' && (() => {
+                                const selectedArrow = annotations.find(ann => ann.id === selectedAnnotationId && ann.type === 'arrow');
+                                if (selectedArrow) {
+                                    return (
+                                        <>
+                                            {/* Start point control */}
+                                            <Circle
+                                                x={selectedArrow.x}
+                                                y={selectedArrow.y}
+                                                radius={6}
+                                                fill="#007bff"
+                                                stroke="#ffffff"
+                                                strokeWidth={2}
+                                                name={`arrow-point-${selectedArrow.id}-start`}
+                                                draggable={false}
+                                                listening={true}
+                                                opacity={0.9}
+                                            />
+                                            {/* End point control */}
+                                            <Circle
+                                                x={selectedArrow.endX || selectedArrow.x}
+                                                y={selectedArrow.endY || selectedArrow.y}
+                                                radius={6}
+                                                fill="#007bff"
+                                                stroke="#ffffff"
+                                                strokeWidth={2}
+                                                name={`arrow-point-${selectedArrow.id}-end`}
+                                                draggable={false}
+                                                listening={true}
+                                                opacity={0.9}
+                                            />
+                                        </>
+                                    );
+                                }
+                                return null;
+                            })()}
 
                             {/* Crop area */}
                             {cropArea && editMode === 'crop' && (
