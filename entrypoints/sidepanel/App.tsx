@@ -63,9 +63,6 @@ const AppContent = () => {
 				i18n.changeLanguage(message.content)
 			} else if (message.messageType == MessageType.changeTheme) {
 				toggleTheme(message.content)
-			} else if (message.messageType == MessageType.convertToReadableDateInSidepanel) {
-				// Show DateFormat tool when date conversion is requested
-				handleToolSelect('convertToReadableDate');
 			}
 		});
 
