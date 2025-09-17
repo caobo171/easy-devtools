@@ -3,6 +3,6 @@
     "message": "Easy devtools"
   },
   "extDescription": {
-    "message": "This is a boilerplate and starter for chrome browser extension, built with Wxt、 React、 Tailwind css 、Shadcn ui and Typescript.\nSupport dark mode and localization "
+    "message": "A comprehensive Chrome extension packed with essential developer utilities for daily development"
   }
 }

@@ -3,6 +3,6 @@
     "message": "Easy devtools"
   },
   "extDescription": {
-    "message": "这是一个chrome 浏览器扩展的模板，使用 Wxt、React、Tailwind css 、 Shadcn ui、Typescript 构建。\n支持暗黑模式和本地化"
+    "message": "一个功能全面的Chrome扩展，集成了日常开发所需的各种实用开发工具"
   }
 }
