@@ -42,7 +42,7 @@ Easy DevTools provides a comprehensive suite of developer utilities accessible r
 Before you get started, please make sure you have the following installed:
 
 - An editor of your choice (e.g., [Visual Studio Code](https://code.visualstudio.com/download), WebStorm)
-- [Node.js](https://nodejs.org/en/download) (version 18 or higher)
+- [Node.js](https://nodejs.org/en/download) (version 22 or higher)
 - [Git](https://git-scm.com/downloads)
 
 ## 🚀 Getting Started
