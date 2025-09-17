@@ -11,8 +11,6 @@ export default defineConfig({
             "sidePanel", 
             "storage", 
             "tabs", 
-            "declarativeNetRequest", 
-            "declarativeNetRequestFeedback", 
             "contextMenus"
         ],
         host_permissions: [
