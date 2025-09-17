@@ -43,14 +43,28 @@ export const useScreenshotState = (initialImage?: string | null) => {
     const stageRef = useRef<Konva.Stage>(null);
     const imageRef = useRef<HTMLImageElement>(null);
 
-	// Load image
+	// Load image with quality preservation
 	useEffect(() => {
 		if (capturedImage) {
 			const img = new window.Image();
 			img.crossOrigin = 'anonymous';
+			
+			// Preserve image quality by disabling image smoothing
+			img.style.imageRendering = 'pixelated'; // For crisp edges
+			img.style.imageRendering = '-webkit-optimize-contrast'; // Webkit optimization
+			img.style.imageRendering = 'crisp-edges'; // Modern browsers
+			
 			img.onload = () => {
+				// Ensure the image maintains its original dimensions
+				img.style.width = 'auto';
+				img.style.height = 'auto';
 				setRealImage(img);
 			};
+			
+			img.onerror = (error) => {
+				console.error('Failed to load screenshot image:', error);
+			};
+			
 			img.src = capturedImage;
 		}
 	}, [capturedImage]);

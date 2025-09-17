@@ -315,20 +315,38 @@ export default defineBackground(() => {
                 }
             }
 		} else if (message.messageType === MessageType.captureVisibleTab) {
-
-            // This is an asynchronous operation
-            browser.tabs.captureVisibleTab(
-                { format: 'png' },
-                (imageDataUrl) => {
-                    if (browser.runtime.lastError) {
-                        // If an error occurs, send it back
-                        sendResponse({ error: browser.runtime.lastError.message });
-                    } else {
-                        // Send the successful capture back to the content script
-                        sendResponse({ imageDataUrl });
-                    }
+            // Get current tab to check zoom level
+            browser.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                const currentTab = tabs[0];
+                if (!currentTab) {
+                    sendResponse({ error: 'No active tab found' });
+                    return;
                 }
-            );
+
+                // Get zoom factor to adjust for zoom level
+                browser.tabs.getZoom(currentTab.id!, (zoomFactor) => {
+                    // Capture with highest quality settings
+                    browser.tabs.captureVisibleTab(
+                        currentTab.windowId,
+                        { 
+                            format: 'png', // PNG for lossless compression
+                            quality: undefined // Not used for PNG, but ensures no quality reduction
+                        },
+                        (imageDataUrl) => {
+                            if (browser.runtime.lastError) {
+                                sendResponse({ error: browser.runtime.lastError.message });
+                            } else {
+                                // Send back both image and metadata for quality processing
+                                sendResponse({ 
+                                    imageDataUrl,
+                                    zoomFactor,
+                                    devicePixelRatio: message.devicePixelRatio || 1
+                                });
+                            }
+                        }
+                    );
+                });
+            });
 
             // Return true to indicate that you will send a response asynchronously
             return true;

@@ -250,8 +250,11 @@ export const ScreenshotOverlay: React.FC<ScreenshotOverlayProps> = ({ onCapture,
       // Wait a tiny bit for the DOM to update
       await new Promise(resolve => setTimeout(resolve, 50));
 
-      // 1. Send a message to the background script
-      browser.runtime.sendMessage({ messageType: MessageType.captureVisibleTab }, (response) => {
+      // 1. Send a message to the background script with device pixel ratio for high-DPI support
+      browser.runtime.sendMessage({ 
+        messageType: MessageType.captureVisibleTab,
+        devicePixelRatio: window.devicePixelRatio || 1
+      }, (response) => {
         if (response.error) {
           console.error('Screenshot capture failed:', response.error);
           onCancel();
@@ -264,6 +267,8 @@ export const ScreenshotOverlay: React.FC<ScreenshotOverlayProps> = ({ onCapture,
           onCancel();
           return;
         }
+
+		console.log(imageData);
 
         // 2. The rest of your logic now goes inside this callback
         const img = new Image();
@@ -282,6 +287,7 @@ export const ScreenshotOverlay: React.FC<ScreenshotOverlayProps> = ({ onCapture,
           const viewportHeight = window.innerHeight;
           const scaleX = img.width / viewportWidth;
           const scaleY = img.height / viewportHeight;
+		  
 
           console.log('Debug - Image dimensions:', img.width, 'x', img.height);
           console.log('Debug - Viewport dimensions:', viewportWidth, 'x', viewportHeight);
@@ -318,6 +324,7 @@ export const ScreenshotOverlay: React.FC<ScreenshotOverlayProps> = ({ onCapture,
           const croppedImageData = canvas.toDataURL('image/png');
           onCapture(croppedImageData);
           console.log('Cropped and captured!');
+		  console.log(croppedImageData);
         };
 
         img.onerror = () => {

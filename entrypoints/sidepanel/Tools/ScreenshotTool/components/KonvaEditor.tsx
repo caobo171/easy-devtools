@@ -115,17 +115,6 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
 
 	console.log('previewScale', previewScale, imageDisplaySize, canvasSize);
 
-    // Load image
-    useEffect(() => {
-        if (capturedImage) {
-            const img = new window.Image();
-            img.crossOrigin = 'anonymous';
-            img.onload = () => {
-                setRealImage(img);
-            };
-            img.src = capturedImage;
-        }
-    }, [capturedImage]);
 
 
     // Process image with inset balance when settings change
@@ -787,6 +776,8 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                         onMouseDown={handleStageMouseDown}
                         onMousemove={handleStageMouseMove}
                         onMouseup={handleStageMouseUp}
+                        pixelRatio={window.devicePixelRatio || 1}
+                        imageSmoothingEnabled={false}
                         style={{
                             cursor: editMode === 'select' ? 'default' : 'crosshair'
                         }}
@@ -876,15 +867,18 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
                                 />
                             )}
 
+					
+
                             {processedImage && (
                                 <KonvaImage
                                     ref={imageRef}
                                     image={processedImage}
                                     x={imagePosition.x}
                                     y={imagePosition.y}
-                                    width={imageDisplaySize.width}
+									width={imageDisplaySize.width}
                                     height={imageDisplaySize.height}
                                     cornerRadius={imageAdjustments.rounded}
+									pixelRatio={window.devicePixelRatio || 1}
                                     shadowColor="rgba(0, 0, 0, 0.1)"
                                     shadowBlur={imageAdjustments.shadow * 2}
                                     shadowOffset={{ x: imageAdjustments.shadow / 3, y: imageAdjustments.shadow / 2 }}

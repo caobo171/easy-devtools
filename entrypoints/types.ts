@@ -88,6 +88,8 @@ class ExtMessage {
     position?: { x: number; y: number };
     requestPendingContent?: boolean;
     target?: string;
+    devicePixelRatio?: number;
+    zoomFactor?: number;
 
     constructor(messageType: MessageType) {
         this.messageType = messageType;
