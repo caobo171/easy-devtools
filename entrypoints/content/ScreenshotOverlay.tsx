@@ -268,7 +268,6 @@ export const ScreenshotOverlay: React.FC<ScreenshotOverlayProps> = ({ onCapture,
           return;
         }
 
-		console.log(imageData);
 
         // 2. The rest of your logic now goes inside this callback
         const img = new Image();
@@ -303,11 +302,29 @@ export const ScreenshotOverlay: React.FC<ScreenshotOverlayProps> = ({ onCapture,
 
           console.log('Debug - Scaled selection:', scaledX, scaledY, scaledWidth, scaledHeight);
 
-          // Set canvas size to selection area
-          canvas.width = scaledWidth;
-          canvas.height = scaledHeight;
+          // Calculate quality enhancement factor
+          // Ensure minimum quality by upscaling small selections
+          const minQualitySize = 800; // Minimum width or height for good quality
+          const qualityScaleX = Math.max(1, minQualitySize / scaledWidth);
+          const qualityScaleY = Math.max(1, minQualitySize / scaledHeight);
+          const qualityScale = Math.max(qualityScaleX, qualityScaleY);
+          
+          // Apply quality scaling to canvas dimensions
+          const finalWidth = Math.round(scaledWidth * qualityScale);
+          const finalHeight = Math.round(scaledHeight * qualityScale);
+          
+          console.log('Debug - Quality scale factor:', qualityScale);
+          console.log('Debug - Final canvas dimensions:', finalWidth, 'x', finalHeight);
 
-          // Draw only the selected portion from the full screenshot
+          // Set canvas size with quality enhancement
+          canvas.width = finalWidth;
+          canvas.height = finalHeight;
+
+          // Enable high-quality image rendering
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+
+          // Draw the selected portion with quality scaling
           ctx.drawImage(
             img,
             scaledX,
@@ -316,8 +333,8 @@ export const ScreenshotOverlay: React.FC<ScreenshotOverlayProps> = ({ onCapture,
             scaledHeight,
             0,
             0,
-            scaledWidth,
-            scaledHeight
+            finalWidth,
+            finalHeight
           );
 
           // Convert to data URL and call your onCapture function
