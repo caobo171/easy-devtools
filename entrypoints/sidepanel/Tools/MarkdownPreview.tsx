@@ -129,6 +129,159 @@ Happy writing! 🚀 All these features are now properly styled and rendered.`);
 
     return (
         <div className="space-y-6">
+            <style>{`
+                .markdown-content {
+                    line-height: 1.6;
+                }
+                .markdown-content h1 {
+                    font-size: 2rem;
+                    font-weight: bold;
+                    margin: 1.5rem 0 1rem 0;
+                    color: #1f2937;
+                }
+                .markdown-content h2 {
+                    font-size: 1.5rem;
+                    font-weight: bold;
+                    margin: 1.25rem 0 0.75rem 0;
+                    color: #374151;
+                }
+                .markdown-content h3 {
+                    font-size: 1.25rem;
+                    font-weight: bold;
+                    margin: 1rem 0 0.5rem 0;
+                    color: #4b5563;
+                }
+                .markdown-content h4 {
+                    font-size: 1.125rem;
+                    font-weight: bold;
+                    margin: 0.875rem 0 0.5rem 0;
+                    color: #6b7280;
+                }
+                .markdown-content h5 {
+                    font-size: 1rem;
+                    font-weight: bold;
+                    margin: 0.75rem 0 0.25rem 0;
+                    color: #6b7280;
+                }
+                .markdown-content h6 {
+                    font-size: 0.875rem;
+                    font-weight: bold;
+                    margin: 0.75rem 0 0.25rem 0;
+                    color: #9ca3af;
+                }
+                .markdown-content p {
+                    margin: 0.75rem 0;
+                }
+                .markdown-content ul, .markdown-content ol {
+                    margin: 0.75rem 0;
+                    padding-left: 1.5rem;
+                }
+                .markdown-content li {
+                    margin: 0.25rem 0;
+                }
+                .markdown-content ul {
+                    list-style-type: disc;
+                }
+                .markdown-content ol {
+                    list-style-type: decimal;
+                }
+                .markdown-content a {
+                    color: #3b82f6;
+                    text-decoration: underline;
+                }
+                .markdown-content a:hover {
+                    color: #1d4ed8;
+                }
+                .markdown-content code {
+                    background-color: #f3f4f6;
+                    padding: 0.125rem 0.25rem;
+                    border-radius: 0.25rem;
+                    font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+                    font-size: 0.875rem;
+                }
+                .markdown-content pre {
+                    background-color: #f3f4f6;
+                    padding: 1rem;
+                    border-radius: 0.5rem;
+                    overflow-x: auto;
+                    margin: 1rem 0;
+                }
+                .markdown-content pre code {
+                    background-color: transparent;
+                    padding: 0;
+                }
+                .markdown-content blockquote {
+                    border-left: 4px solid #d1d5db;
+                    padding-left: 1rem;
+                    margin: 1rem 0;
+                    font-style: italic;
+                    color: #6b7280;
+                }
+                .markdown-content table {
+                    border-collapse: collapse;
+                    width: 100%;
+                    margin: 1rem 0;
+                }
+                .markdown-content th, .markdown-content td {
+                    border: 1px solid #d1d5db;
+                    padding: 0.5rem;
+                    text-align: left;
+                }
+                .markdown-content th {
+                    background-color: #f9fafb;
+                    font-weight: bold;
+                }
+                .markdown-content img {
+                    max-width: 100%;
+                    height: auto;
+                    border-radius: 0.5rem;
+                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                }
+                .markdown-content hr {
+                    border: none;
+                    border-top: 1px solid #d1d5db;
+                    margin: 2rem 0;
+                }
+                /* Dark mode styles */
+                .dark .markdown-content h1 {
+                    color: #f9fafb;
+                }
+                .dark .markdown-content h2 {
+                    color: #f3f4f6;
+                }
+                .dark .markdown-content h3 {
+                    color: #e5e7eb;
+                }
+                .dark .markdown-content h4, .dark .markdown-content h5 {
+                    color: #d1d5db;
+                }
+                .dark .markdown-content h6 {
+                    color: #9ca3af;
+                }
+                .dark .markdown-content code {
+                    background-color: #374151;
+                    color: #f9fafb;
+                }
+                .dark .markdown-content pre {
+                    background-color: #374151;
+                }
+                .dark .markdown-content blockquote {
+                    border-left-color: #6b7280;
+                    color: #9ca3af;
+                }
+                .dark .markdown-content th, .dark .markdown-content td {
+                    border-color: #6b7280;
+                }
+                .dark .markdown-content th {
+                    background-color: #374151;
+                }
+                .dark .markdown-content a {
+                    color: #60a5fa;
+                }
+                .dark .markdown-content a:hover {
+                    color: #93c5fd;
+                }
+            `}</style>
             <div>
                 <h2 className="text-2xl font-bold mb-2">📝 Markdown Preview</h2>
                 <p className="text-gray-600 dark:text-gray-400">
@@ -172,11 +325,8 @@ Happy writing! 🚀 All these features are now properly styled and rendered.`);
                     </label>
                     <Card className="h-96 overflow-auto">
                         <div 
-                            className="p-4 prose prose-sm max-w-none dark:prose-invert prose-headings:font-bold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-p:mb-4 prose-ul:list-disc prose-ol:list-decimal prose-li:ml-4 prose-a:text-blue-600 prose-a:underline hover:prose-a:text-blue-800 prose-code:bg-gray-100 prose-code:px-1 prose-code:rounded prose-pre:bg-gray-100 prose-pre:p-4 prose-pre:rounded-lg prose-pre:overflow-x-auto prose-blockquote:border-l-4 prose-blockquote:border-gray-300 prose-blockquote:pl-4 prose-blockquote:italic prose-table:border-collapse prose-th:border prose-th:border-gray-300 prose-th:p-2 prose-th:bg-gray-50 prose-td:border prose-td:border-gray-300 prose-td:p-2 prose-img:max-w-full prose-img:h-auto prose-img:rounded-lg prose-img:shadow-md dark:prose-code:bg-gray-800 dark:prose-pre:bg-gray-800 dark:prose-th:bg-gray-800 dark:prose-a:text-blue-400"
+                            className="p-4 markdown-content"
                             dangerouslySetInnerHTML={{ __html: convertMarkdownToHTML(markdown) }}
-                            style={{
-                                lineHeight: '1.6',
-                            }}
                         />
                     </Card>
                 </div>
