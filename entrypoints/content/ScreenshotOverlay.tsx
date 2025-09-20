@@ -302,23 +302,9 @@ export const ScreenshotOverlay: React.FC<ScreenshotOverlayProps> = ({ onCapture,
 
           console.log('Debug - Scaled selection:', scaledX, scaledY, scaledWidth, scaledHeight);
 
-          // Calculate quality enhancement factor
-          // Ensure minimum quality by upscaling small selections
-          const minQualitySize = 800; // Minimum width or height for good quality
-          const qualityScaleX = Math.max(1, minQualitySize / scaledWidth);
-          const qualityScaleY = Math.max(1, minQualitySize / scaledHeight);
-          const qualityScale = Math.max(qualityScaleX, qualityScaleY);
-          
-          // Apply quality scaling to canvas dimensions
-          const finalWidth = Math.round(scaledWidth * qualityScale);
-          const finalHeight = Math.round(scaledHeight * qualityScale);
-          
-          console.log('Debug - Quality scale factor:', qualityScale);
-          console.log('Debug - Final canvas dimensions:', finalWidth, 'x', finalHeight);
-
           // Set canvas size with quality enhancement
-          canvas.width = finalWidth;
-          canvas.height = finalHeight;
+          canvas.width = scaledWidth;
+          canvas.height = scaledHeight;
 
           // Enable high-quality image rendering
           ctx.imageSmoothingEnabled = true;
@@ -333,9 +319,10 @@ export const ScreenshotOverlay: React.FC<ScreenshotOverlayProps> = ({ onCapture,
             scaledHeight,
             0,
             0,
-            finalWidth,
-            finalHeight
+            scaledWidth,
+            scaledHeight
           );
+		// ctx.drawImage(img, img.width, img.height)
 
           // Convert to data URL and call your onCapture function
           const croppedImageData = canvas.toDataURL('image/png');
