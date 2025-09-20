@@ -25,7 +25,7 @@ interface ToolBarProps {
 
 const tools = [
     { id: 'select', icon: CursorArrowRaysIcon, label: 'Select', tooltip: 'Select and move annotations' },
-    { id: 'crop', icon: ScissorsIcon, label: 'Crop', tooltip: 'Crop image area' },
+    // { id: 'crop', icon: ScissorsIcon, label: 'Crop', tooltip: 'Crop image area' },
     { id: 'text', icon: DocumentTextIcon, label: 'Text', tooltip: 'Add text annotation' },
     { id: 'arrow', icon: ArrowUpRightIcon, label: 'Arrow', tooltip: 'Draw arrow' },
     { id: 'rectangle', icon: RectangleGroupIcon, label: 'Rectangle', tooltip: 'Draw rectangle' },
