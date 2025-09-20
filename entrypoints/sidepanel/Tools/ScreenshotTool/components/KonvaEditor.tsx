@@ -98,7 +98,8 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
             x: (canvasSize.width - imageDisplaySize.width) / 2,
             y: (canvasSize.height - imageDisplaySize.height) / 2
         };
-    }, [canvasSize, imageDisplaySize]);
+    }, [canvasSize, imageDisplaySize, imageAdjustments.padding]);
+
 
     const previewScale = useMemo(() => {
         if (canvasSize.width <= 0 || canvasSize.height <= 0) {
@@ -172,6 +173,17 @@ export const KonvaEditor: React.FC<KonvaEditorProps> = ({
             konvaImage.getLayer()?.batchDraw();
         }
     }, [imageAdjustments, realImage]);
+
+    // Force image re-render when display size changes
+    useEffect(() => {
+        if (imageRef.current && processedImage) {
+            const konvaImage = imageRef.current;
+            // Clear cache and force redraw when size changes
+            konvaImage.clearCache();
+            konvaImage.cache();
+            konvaImage.getLayer()?.batchDraw();
+        }
+    }, [imageDisplaySize, processedImage]);
 
     // Handle transformer selection
     useEffect(() => {
